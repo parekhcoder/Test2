@@ -19,6 +19,5 @@ RUN apt-get update \
     pip3 install --upgrade awscli s3cmd python-magic && \
     rm /var/cache/apk/* 
 
-RUN apt install  gccgo-go \
-    golang-go
+
     
