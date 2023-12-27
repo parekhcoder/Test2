@@ -10,6 +10,7 @@ RUN apt-get update \
     mailcap \
     mysql-client \
     curl \    
+    python3-crcmod \    
     gnupg \
     coreutils \
     gzip \
