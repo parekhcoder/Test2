@@ -49,10 +49,6 @@ RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cl
     gcloud config set metrics/environment github_docker_image && \
     gcloud --version
 
-# Copy Slack Alert script and make executable
-COPY resources/slack-alert.sh /
-RUN chmod +x /slack-alert.sh
-
 # Copy backup script and execute
 COPY resources/perform-backup.sh /
 RUN chmod +x /perform-backup.sh
