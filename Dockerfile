@@ -15,5 +15,9 @@ RUN apt-get update \
     gnupg \
     coreutils \
     gzip \
+    gccgo-go \
+    golang-go \
     git && \
-    pip3 install --upgrade awscli s3cmd python-magic 
+    pip3 install --upgrade awscli s3cmd python-magic && \
+    rm /var/cache/apk/* && \
+    sudo ln -s /usr/lib/go/bin/* /usr/lib/bin/
