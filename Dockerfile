@@ -10,10 +10,5 @@ RUN apt-get update \
     mailcap \
     mysql-client \
     curl \
-    python3-crcmod \    
-    libc6-compat \
-    gnupg \
-    coreutils \
-    gzip \
-    go \
+    
    
