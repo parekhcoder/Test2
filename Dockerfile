@@ -14,9 +14,11 @@ RUN apt-get update \
     libc6 \
     gnupg \
     coreutils \
-    gzip \
-    gccgo-go \
-    golang-go \
+    gzip \   
     git && \
     pip3 install --upgrade awscli s3cmd python-magic && \
     rm /var/cache/apk/* 
+
+RUN apt install  gccgo-go \
+    golang-go
+    
