@@ -126,26 +126,14 @@ if [ "$has_failed" = true ]; then
 
     # Convert SLACK_ENABLED to lowercase before executing if statement
     SLACK_ENABLED=$(echo "$SLACK_ENABLED" | awk '{print tolower($0)}')
-
-    # If Slack alerts are enabled, send a notification alongside a log of what failed
-    if [ "$SLACK_ENABLED" = "true" ]; then
-        # Put the contents of the database backup logs into a variable
-        logcontents=$(cat /tmp/kubernetes-cloud-mysql-backup.log)
-
-        # Send Slack alert
-        /slack-alert.sh "One or more backups on database host $TARGET_DATABASE_HOST failed. The error details are included below:" "$logcontents"
-    fi
-
+  
     echo -e "kubernetes-cloud-mysql-backup encountered 1 or more errors. Exiting with status code 1."
     exit 1
 
 else
 
     # If Slack alerts are enabled, send a notification that all database backups were successful
-    if [ "$SLACK_ENABLED" = "true" ]; then
-        /slack-alert.sh "All database backups successfully completed on database host $TARGET_DATABASE_HOST."
-    fi
-
+   echo -e "DB Backup success"
     exit 0
 
 fi
