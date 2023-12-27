@@ -19,5 +19,4 @@ RUN apt-get update \
     golang-go \
     git && \
     pip3 install --upgrade awscli s3cmd python-magic && \
-    rm /var/cache/apk/* && \
-    export PATH=$PATH:/usr/lib/go/bin
+    rm /var/cache/apk/* 
