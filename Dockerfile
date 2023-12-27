@@ -18,8 +18,7 @@ RUN apt-get update \
     gccgo-go \
     golang-go \
     git && \
-    pip3 install --upgrade awscli s3cmd python-magic && \
-    export PATH=$PATH:/usr/lib/go/bin
+    pip3 install --upgrade awscli s3cmd python-magic 
     
 
 
