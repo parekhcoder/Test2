@@ -9,8 +9,7 @@ RUN apt-get update \
     less \
     mailcap \
     mysql-client \
-    curl \
-    python3-crcmod \    
+    curl \    
     libc6 \
     gnupg \
     coreutils \
