@@ -4,14 +4,13 @@ FROM ubuntu:latest
 RUN apt-get update \
     && apt-get install -y curl jq \
     python3 \
-    py-pip \
+    python3-pip \
     groff \
     less \
     mailcap \
     mysql-client \
     curl \
-    py-crcmod \
-    bash \
+    python3-crcmod \    
     libc6-compat \
     gnupg \
     coreutils \
