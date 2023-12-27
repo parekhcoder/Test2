@@ -11,7 +11,7 @@ RUN apt-get update \
     mysql-client \
     curl \    
     python3-crcmod \    
-    libc6-compat \
+    libc6 \
     gnupg \
     coreutils \
     gzip \
