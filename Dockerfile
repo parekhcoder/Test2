@@ -10,10 +10,6 @@ RUN apt-get update \
     mailcap \
     mysql-client \
     curl \    
-    libc6 \
-    gnupg \
-    coreutils \
-    gzip \
-    go \
+    
     
    
