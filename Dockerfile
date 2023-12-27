@@ -17,6 +17,8 @@ RUN apt-get update \
     gzip \      
     git && \
     pip3 install --upgrade awscli s3cmd python-magic 
+
+RUN apt install gccgo-go 
     
 
 
