@@ -16,5 +16,6 @@ RUN apt-get update \
     coreutils \
     gzip \      
     gcc make \
+    golang \
     git && \
     pip3 install --upgrade awscli s3cmd python-magic    
