@@ -50,9 +50,11 @@ if [ "$TARGET_ALL_DATABASES" = "true" ]; then
 fi
 
 # Loop through all the defined databases, seperating by a ,
+echo "..above if.."
 if [ "$has_failed" = false ]; then
+     echo "..after if.."
     for CURRENT_DATABASE in ${TARGET_DATABASE_NAMES//,/ }; do
-
+        echo "..after for.."
         DUMP=$CURRENT_DATABASE$(date +$BACKUP_TIMESTAMP).sql
         echo $DUMP
         # Perform the database backup. Put the output to a variable. If successful upload the backup to S3, if unsuccessful print an entry to the console and the log, and set has_failed to true.
