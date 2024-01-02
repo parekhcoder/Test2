@@ -1,4 +1,4 @@
-# !/bin/bash
+# !/bin/sh
 has_failed=false
 
 # Create the GCloud Authentication file if set
@@ -46,6 +46,10 @@ if [ "$TARGET_ALL_DATABASES" = "true" ]; then
         #Remove trailing comma
         TARGET_DATABASE_NAMES=${TARGET_DATABASE_NAMES%?}
         echo -e ".....Successfully built list of all databases (${TARGET_DATABASE_NAMES}) at $(date +'%d-%m-%Y %H:%M:%S')."
+        for CURRENT_DATABASE in ${TARGET_DATABASE_NAMES//,/ }
+        do
+            echo ".. for.."
+        done
         IFS=',' read -r -a array <<< "$TARGET_DATABASE_NAMES"
         for element in "${array[@]}"
         do
