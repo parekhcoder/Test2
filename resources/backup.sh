@@ -45,17 +45,7 @@ if [ "$TARGET_ALL_DATABASES" = "true" ]; then
         done
         #Remove trailing comma
         TARGET_DATABASE_NAMES=${TARGET_DATABASE_NAMES%?}
-        echo -e ".....Successfully built list of all databases (${TARGET_DATABASE_NAMES}) at $(date +'%d-%m-%Y %H:%M:%S')."
-        for i in 1 2 3 4 5
-        do
-          echo "Random number $i: $RANDOM"
-        done
-
-        for cd in "${TARGET_DATABASE_NAMES//,/ }"
-        do
-            echo ".. for.."
-        done
-       
+        echo -e ".....Successfully built list of all databases (${TARGET_DATABASE_NAMES}) at $(date +'%d-%m-%Y %H:%M:%S')."      
 
     fi
 fi
@@ -64,7 +54,7 @@ fi
 echo "..above if.."
 if [ "$has_failed" = false ]; then
      echo "..after if.."
-    for CURRENT_DATABASE in ${TARGET_DATABASE_NAMES//,/ }; do
+    for CURRENT_DATABASE in ${ALL_DATABASES_DATABASE_LIST} do
         echo "..after for.."
         DUMP=$CURRENT_DATABASE$(date +$BACKUP_TIMESTAMP).sql
         echo $DUMP
