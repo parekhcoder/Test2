@@ -50,11 +50,7 @@ if [ "$TARGET_ALL_DATABASES" = "true" ]; then
         do
             echo ".. for.."
         done
-        IFS=',' read -r -a array <<< "$TARGET_DATABASE_NAMES"
-        for element in "${array[@]}"
-        do
-            echo "$element"
-        done
+       
 
     fi
 fi
