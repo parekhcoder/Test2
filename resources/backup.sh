@@ -46,7 +46,7 @@ if [ "$TARGET_ALL_DATABASES" = "true" ]; then
         #Remove trailing comma
         TARGET_DATABASE_NAMES=${TARGET_DATABASE_NAMES%?}
         echo -e ".....Successfully built list of all databases (${TARGET_DATABASE_NAMES}) at $(date +'%d-%m-%Y %H:%M:%S')."
-        for cd in ${TARGET_DATABASE_NAMES//,/ }
+        for cd in "${TARGET_DATABASE_NAMES//,/ }"
         do
                 echo "..db..$cd"
         done
