@@ -54,7 +54,8 @@ fi
 echo "..above if.."
 if [ "$has_failed" = false ]; then
      echo "..after if.."
-    for CURRENT_DATABASE in ${ALL_DATABASES_DATABASE_LIST} do
+    for CURRENT_DATABASE in ${ALL_DATABASES_DATABASE_LIST} 
+    do
         echo "..after for.."
         DUMP=$CURRENT_DATABASE$(date +$BACKUP_TIMESTAMP).sql
         echo $DUMP
