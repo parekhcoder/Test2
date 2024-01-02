@@ -46,8 +46,8 @@ if [ "$TARGET_ALL_DATABASES" = "true" ]; then
         #Remove trailing comma
         TARGET_DATABASE_NAMES=${TARGET_DATABASE_NAMES%?}
         echo -e ".....Successfully built list of all databases (${TARGET_DATABASE_NAMES}) at $(date +'%d-%m-%Y %H:%M:%S')."
-        IFS=',' read -r -a dbarray <<< "$TARGET_DATABASE_NAMES"
-        for element in "${dbarray[@]}"
+        IFS=',' read -r -a array <<< "$TARGET_DATABASE_NAMES"
+        for element in "${array[@]}"
         do
             echo "$element"
         done
