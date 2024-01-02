@@ -1,4 +1,4 @@
-# !/bin/sh
+# !/bin/bash
 has_failed=false
 
 # Create the GCloud Authentication file if set
