@@ -1,7 +1,7 @@
 # !/bin/bash
 has_failed=false
 
-curl -X POST $APIURL -H "Content-Type: application/json" -d '{"Events":[{"@t":"2024-01-03T14:46:00.000Z","@mt":"testbkp msg","message":"....backup started....","MachineName":"MACHINE-VP","EnvironmentName":"Development","PdxAppName":"test-bkp","PdxClientGroup":"default","PdxAppType":"backup"}]}'
+curl -v -X POST $APIURL -H "Content-Type: application/json" -d '{"Events":[{"@t":"2024-01-03T14:53:00.000Z","@mt":"testbkp msg","message":"....backup started....","MachineName":"MACHINE-VP","EnvironmentName":"Development","PdxAppName":"test-bkp","PdxClientGroup":"default","PdxAppType":"backup"}]}'
 
 # Set the BACKUP_CREATE_DATABASE_STATEMENT variable
 if [ "$BACKUP_CREATE_DATABASE_STATEMENT" = "true" ]; then
