@@ -1,20 +1,7 @@
 # !/bin/bash
 has_failed=false
 
-# Create the GCloud Authentication file if set
-if [ ! -z "$GCP_GCLOUD_AUTH" ]; then
-
-    # Check if we are already base64 decoded, credit: https://stackoverflow.com/questions/8571501/how-to-check-whether-a-string-is-base64-encoded-or-not
-    if echo "$GCP_GCLOUD_AUTH" | grep -Eq '^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$'; then
-        echo "$GCP_GCLOUD_AUTH" | base64 --decode >"$HOME"/gcloud.json
-    else
-        echo "$GCP_GCLOUD_AUTH" >"$HOME"/gcloud.json
-    fi
-
-    # Activate the Service Account
-    gcloud auth activate-service-account --key-file=$HOME/gcloud.json
-
-fi
+curl -X POST $APIURL -H "Content-Type: application/json" -d '{"Events":[{"message":"....backup started....","MachineName":"MACHINE-VP","EnvironmentName":"Development","PdxAppName":"test-bkp","PdxClientGroup":"default","PdxAppType":"backup"}]}'
 
 # Set the BACKUP_CREATE_DATABASE_STATEMENT variable
 if [ "$BACKUP_CREATE_DATABASE_STATEMENT" = "true" ]; then
@@ -27,7 +14,7 @@ if [ "$TARGET_ALL_DATABASES" = "true" ]; then
     # Ignore any databases specified by TARGET_DATABASE_NAMES
     if [ ! -z "$TARGET_DATABASE_NAMES" ]
     then
-        echo "Both TARGET_ALL_DATABASES is set to 'true' and databases are manually specified by 'TARGET_DATABASE_NAMES'. Ignoring 'TARGET_DATABASE_NAMES'..."
+        echo "Both TARGET_ALL_DATABASES is set to 'true' and databases are manually specified by 'TARGET_DATABASE_NAMES'. Ignoring 'TARGET_DATABASE_NAMES'..."        
         TARGET_DATABASE_NAMES=""
     fi
     # Build Database List
@@ -104,20 +91,7 @@ if [ "$has_failed" = false ]; then
                     has_failed=true
                 fi
                 rm /tmp/"$DUMP"
-            fi
-
-            # If the Backup Provider is GCP, then upload to GCS
-            if [ "$BACKUP_PROVIDER" = "gcp" ]; then
-
-                # Perform the upload to S3. Put the output to a variable. If successful, print an entry to the console and the log. If unsuccessful, set has_failed to true and print an entry to the console and the log
-                if gcpoutput=$(gsutil cp /tmp/$DUMP gs://$GCP_BUCKET_NAME$GCP_BUCKET_BACKUP_PATH/$DUMP 2>&1); then
-                    echo -e "Database backup successfully uploaded for $CURRENT_DATABASE at $(date +'%d-%m-%Y %H:%M:%S')."
-                else
-                    echo -e "Database backup failed to upload for $CURRENT_DATABASE at $(date +'%d-%m-%Y %H:%M:%S'). Error: $gcpoutput" | tee -a /tmp/kubernetes-cloud-mysql-backup.log
-                    has_failed=true
-                fi
-                rm /tmp/"$DUMP"
-            fi
+            fi           
 
         else
             echo -e "Database backup FAILED for $CURRENT_DATABASE at $(date +'%d-%m-%Y %H:%M:%S'). Error: $sqloutput" | tee -a /tmp/kubernetes-cloud-mysql-backup.log
