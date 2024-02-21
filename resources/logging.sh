@@ -50,8 +50,12 @@ function AddLog
         logLevel="Information"
     ;;
 
+    W)
+        logLevel="Warning"
+    ;;
+
     *)
-        logLevel="Debug"
+        logLevel="Information"
     ;;
     esac  
     
