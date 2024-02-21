@@ -7,14 +7,22 @@ function InitializeLog
 
 function PushLog
 {  
-    curlOutput=$(curl -s -w "\n%{response_code}\n" -X POST $LOGAPIURL -H "Content-Type: application/json" -d "$logJSON")    
-    httpCode=$(tail -n1 <<< "$curlOutput")
-    curlOutput=$(sed '$ d' <<< "$curlOutput")
+    noOfLogs=$(jq '.Events[] | length')
 
-    if [ "$httpCode" != 200 ];
-       then
-           echo "Error: while calling logging api- $curlOutput"      
-    fi      
+    if [ "$noOfLogs" > 0 ];
+        then
+            curlOutput=$(curl -s -w "\n%{response_code}\n" -X POST $LOGAPIURL -H "Content-Type: application/json" -d "$logJSON")    
+            httpCode=$(tail -n1 <<< "$curlOutput")
+            curlOutput=$(sed '$ d' <<< "$curlOutput")
+        
+            if [ "$httpCode" != 200 ];
+               then
+                   echo "Error: while calling logging api- $curlOutput"      
+            fi  
+            InitializeLog
+        else
+            echo "No logs to push"
+    fi
     
 } 
 
