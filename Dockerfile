@@ -1,5 +1,5 @@
 # Set the base image
-FROM ubuntu:latest
+FROM ubuntu:22.04
 
 RUN apt-get update \
     && apt-get install -y curl jq \
@@ -54,4 +54,4 @@ COPY resources/backup.sh /
 COPY resources/logging.sh /
 RUN chmod +x /backup.sh
 RUN chmod +x /logging.sh
-CMD ["sh", "/backup.sh"]
+CMD ["bash", "/backup.sh"]
