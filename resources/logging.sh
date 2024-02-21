@@ -7,7 +7,7 @@ function InitializeLog
 
 function PushLog
 {  
-    noOfLogs=$(jq '.Events[] | length')
+    noOfLogs=$(jq '.Events[] | length' <<< $logJSON)
 
     if [ "$noOfLogs" > 0 ];
         then
