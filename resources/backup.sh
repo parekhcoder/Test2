@@ -59,7 +59,7 @@ function BackupDBs()
     	do
         
         dump=$db$(date +$BACKUP_TIMESTAMP).sql        
-       
+        echo "mysqldump -u $TARGET_DATABASE_USER -h $TARGET_DATABASE_HOST -p$TARGET_DATABASE_PASSWORD -P $TARGET_DATABASE_PORT $BACKUP_ADDITIONAL_PARAMS $BACKUP_CREATE_DATABASE_STATEMENT $CURRENT_DATABASE 2>&1 > /tmp/$dump"
         if ! sqlOutput=$(mysqldump -u $TARGET_DATABASE_USER -h $TARGET_DATABASE_HOST -p$TARGET_DATABASE_PASSWORD -P $TARGET_DATABASE_PORT $BACKUP_ADDITIONAL_PARAMS $BACKUP_CREATE_DATABASE_STATEMENT $CURRENT_DATABASE 2>&1 > /tmp/$dump); then
 			AddLog "Error: failed DB: $db msg: $sqloutput" "E"
 			isSuccess=false
