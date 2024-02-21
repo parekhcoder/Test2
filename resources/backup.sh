@@ -66,7 +66,7 @@ function BackupDBs()
 			continue
 		fi            
             
-		AddLog "Success: DB backup $db $dump" "D"		
+		AddLog "Success: DB backup $db $dump" "I"		
 		
 		BACKUP_COMPRESS=$(echo "$BACKUP_COMPRESS" | awk '{print tolower($0)}')
 		
@@ -110,10 +110,10 @@ function BackupDBs()
 		
 		if ! awsOutput=$(aws $endpoint s3 cp /tmp/$dump s3://$AWS_BUCKET_NAME$AWS_BUCKET_BACKUP_PATH/$cyear/$cmonth/$dump 2>&1); 
 			then
-				AddLog "Success: s3upload DB: $db" "I"
-			else
 				isSuccess=false
 				AddLog "Error: s3upload DB: $db msg: $awsOutput"			
+			else
+   				AddLog "Success: s3upload DB: $db" "I"				
 		fi
 		PushLog
 		rm /tmp/"$dump"     
