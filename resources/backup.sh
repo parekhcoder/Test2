@@ -113,7 +113,7 @@ function BackupDBs()
 				isSuccess=false
 				AddLog "Error: s3upload DB: $db msg: $awsOutput"			
 			else
-   				AddLog "Success: s3upload DB: $db" "I"				
+   				AddLog "Success: s3upload DB: $db Path:$AWS_BUCKET_NAME$AWS_BUCKET_BACKUP_PATH/$cyear/$cmonth/$dump " "I"				
 		fi
 		PushLog
 		rm /tmp/"$dump"     
