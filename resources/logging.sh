@@ -35,7 +35,7 @@ function AddLog
     cdate=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
     logMsg=$1
     logLevel=$2
-    echo "logMsg: $logMsg logLevel: $logLevel"
+ 
     case $logLevel in
 
     D)
