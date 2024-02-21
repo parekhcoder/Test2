@@ -48,18 +48,25 @@ function ListAllDBs()
 
 function BackupDBs()
 {
+	if [ "$BACKUP_CREATE_DATABASE_STATEMENT" = "true" ]; 
+ 		then
+  		  BACKUP_CREATE_DATABASE_STATEMENT="--databases"
+	else
+    		BACKUP_CREATE_DATABASE_STATEMENT=""
+	fi
+	
 	for db in ${TARGET_DATABASE_NAMES} 
-    do
+    	do
         
         dump=$db$(date +$BACKUP_TIMESTAMP).sql        
-        
+       
         if ! sqlOutput=$(mysqldump -u $TARGET_DATABASE_USER -h $TARGET_DATABASE_HOST -p$TARGET_DATABASE_PASSWORD -P $TARGET_DATABASE_PORT $BACKUP_ADDITIONAL_PARAMS $BACKUP_CREATE_DATABASE_STATEMENT $CURRENT_DATABASE 2>&1 > /tmp/$dump); then
 			AddLog "Error: failed DB: $db msg: $sqloutput" "E"
 			isSuccess=false
 			continue
 		fi            
             
-		AddLog "Success: DB backup $db" "D"		
+		AddLog "Success: DB backup $db $dump" "D"		
 		
 		BACKUP_COMPRESS=$(echo "$BACKUP_COMPRESS" | awk '{print tolower($0)}')
 		
