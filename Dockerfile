@@ -51,5 +51,6 @@ RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cl
 
 # Copy backup script and execute
 COPY resources/backup.sh /
+COPY resources/logging.sh /
 RUN chmod +x /backup.sh
 CMD ["sh", "/backup.sh"]
