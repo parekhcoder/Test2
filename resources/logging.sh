@@ -35,7 +35,7 @@ function AddLog
     cdate=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
     logMsg=$1
     logLevel=$2
-    
+    echo "logMsg: $logMsg logLevel: $logLevel"
     case $logLevel in
 
     D)
@@ -64,6 +64,6 @@ function AddLog
     fi
    
     log=$(jq --arg logMsg "$logMsg" ".\"@mt\" = $logMsg" <<< $log)        
-    echo "$log"
+    echo "log: $log"
     logJSON=$(jq ".Events[.Events | length] |= . + $log" <<< $logJSON)        
 }
