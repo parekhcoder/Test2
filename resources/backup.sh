@@ -15,6 +15,82 @@ function LogNExit()
     exit "$status"
 }
 
+function SetS3Profiles()
+{
+    local vaults=$(curl -s -w "\n%{response_code}\n" $OPWD_URL/v1/vaults -H "Accept: application/json"  -H "Authorization: Bearer $OPWD_TOKEN")
+    local http_code=$(tail -n1 <<< "$vaults")
+    vaults=$(sed '$ d' <<< "$vaults")
+    
+    if [ "$http_code" != 200 ];
+        then
+            return -1
+    fi
+
+    AddLog "Got Vaults" "D"
+    
+    local vaultUUID=$(jq -r '.[] | select(.name=="'$OPWD_VAULT'") | .id' <<< $vaults)
+    echo "VaultID: $vaultUUID" 
+    
+    local vaultItems=$(curl -s -w "\n%{response_code}\n" $OPWD_URL/v1/vaults/$vaultUUID/items -H "Accept: application/json"  -H "Authorization: Bearer $OPWD_TOKEN")
+    
+    http_code=$(tail -n1 <<< "$vaultItems")
+    vaultItems=$(sed '$ d' <<< "$vaultItems")
+    if [ "$http_code" != 200 ];
+        then
+            return -1
+    fi
+
+    AddLog "Got Vault Items" "D"    
+    
+    local cloudS3UUID=$(jq -r '.[] | select(.title=="'$OPWD_CLOUD_KEY'") | .id' <<< $vaultItems)
+    local localS3UUID=$(jq -r '.[] | select(.title=="'$OPWD_LOCAL_KEY'") | .id' <<< $vaultItems)  
+    local agePublicKeyUUID=$(jq -r '.[] | select(.title=="'$AGE_PUBLIC_KEY'") | .id' <<< $vaultItems)    
+    
+    local cloudS3Item=$(curl -w "\n%{response_code}\n" -s $OPWD_URL/v1/vaults/$vaultUUID/items/$cloudS3UUID -H "Accept: application/json"  -H "Authorization: Bearer $OPWD_TOKEN")
+
+    httpCode=$(tail -n1 <<< "$cloudS3Item")
+    cloudS3Item=$(sed '$ d' <<< "$cloudS3Item")
+
+    if [ "$httpCode" != 200 ];
+        then
+            errorMsg="Get1Pwd Get CloudItem: $cloudS3Item"
+            return -1
+    fi    
+
+    local cloudS3UserName=$(jq -r '.fields[] | select(.id=="username") | .value' <<< $cloudS3Item)
+    local cloudS3Pwd=$(jq -r '.fields[] | select(.id=="password") | .value' <<< $cloudS3Item)
+    cloudS3URL=$(jq -r '.urls[0].href' <<< $cloudS3Item)
+
+    aws configure set aws_access_key_id $cloudS3UserName --profile cloud
+    aws configure set aws_secret_access_key $cloudS3Pwd --profile cloud
+
+    
+    if [ "$LOCAL_UPLOAD" = "true" ]; 
+    	then
+    		local localS3Item=$(curl -w "\n%{response_code}\n" -s $OPWD_URL/v1/vaults/$vaultUUID/items/$localS3UUID -H "Accept: application/json"  -H "Authorization: Bearer $OPWD_TOKEN")
+
+      		httpCode=$(tail -n1 <<< "$localS3Item")
+    		localS3Item=$(sed '$ d' <<< "$localS3Item")
+
+    		if [ "$httpCode" != 200 ];
+        		then
+            			errorMsg="Get1Pwd Get CloudItem: $localS3Item"
+            			return -1
+		fi
+
+      		local localS3UserName=$(jq -r '.fields[] | select(.id=="username") | .value' <<< $localS3Item)
+	    	local localS3Pwd=$(jq -r '.fields[] | select(.id=="password") | .value' <<< $localS3Item)
+	    	localS3URL=$(jq -r '.urls[0].href' <<< $localS3Item)
+	
+	    	aws configure set aws_access_key_id $localS3UserName --profile local
+	    	aws configure set aws_secret_access_key $localS3Pwd --profile local
+    fi        
+
+    local agePublicKeyItem=$(curl -s $OPWD_URL/v1/vaults/$vaultUUID/items/$agePublicKeyUUID -H "Accept: application/json"  -H "Authorization: Bearer $OPWD_TOKEN")
+    agePublicKey=$(jq -r '.fields[] | select(.id=="credential") | .value' <<< $agePublicKeyItem)
+}
+
+
 function ListAllDBs()
 {
 	if [ "$TARGET_ALL_DATABASES" = "true" ]; 
