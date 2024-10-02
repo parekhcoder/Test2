@@ -163,7 +163,9 @@ function BackupDBs()
 		fi
 
 		# encrypt the backup
-		if [ -n "$AGE_PUBLIC_KEY" ]; then
+  		AGE_Encrypt=$(echo "$AGE_Encrypt" | awk '{print tolower($0)}')		
+  
+		if [ "$AGE_Encrypt" = "true" ]; then
 			if ! ageOutput=$(cat /tmp/"$dump" | age -a -r "$AGE_PUBLIC_KEY" >/tmp/"$dump".age 2>&1);
 				then
 					isSuccess=false
@@ -174,23 +176,31 @@ function BackupDBs()
 			fi
 			rm /tmp/"$dump"
 			dump="$dump".age
-		fi		
-		
-		if [ ! -z "$AWS_S3_ENDPOINT" ]; then
-			endpoint="--endpoint-url=$AWS_S3_ENDPOINT"
-		fi
+		fi				
 		
 		cdate=$(date -u)
 		cyear=$(date --date="$cdate" +%Y)
 		cmonth=$(date --date="$cdate" +%m)
-		
-		if ! awsOutput=$(aws $endpoint s3 cp /tmp/$dump s3://$AWS_BUCKET_NAME$AWS_BUCKET_BACKUP_PATH/$cyear/$cmonth/$dump 2>&1); 
+
+		if awsOutput=$(aws --no-verify-ssl  --only-show-errors --endpoint-url=$cloudS3URL s3 cp /tmp/$dump s3://$CLOUD_BUCKET$CLOUD_BUCKET_PATH/$cyear/$cmonth/$dump --profile cloud 2>&1); 
+  		      then
+	  			AddLog "Success: Cloud Upload DB: $db Path:$$CLOUD_BUCKET$CLOUD_BUCKET_PATH/$cyear/$cmonth/$dump " "I"                        
+                      else
+                        	isSuccess=false
+				AddLog "Error: s3upload DB: $db msg: $awsOutput" "E"
+                fi
+    
+	      if [ "$LOCAL_UPLOAD" = "true" ]; 
+		then
+		      if awsOutput=$(aws --no-verify-ssl --only-show-errors --endpoint-url=$localS3URL s3 cp /tmp/$dump s3://$LOCAL_BUCKET$LOCAL_BUCKET_PATH/$cyear/$cmonth/$dump --profile local 2>&1); 
 			then
-				isSuccess=false
-				AddLog "Error: s3upload DB: $db msg: $awsOutput"			
+			 	 AddLog "Success: Local Upload DB: $db Path:$LOCAL_BUCKET$LOCAL_BUCKET_PATH/$cyear/$cmonth/$dump" "I"
 			else
-   				AddLog "Success: s3upload DB: $db Path:$AWS_BUCKET_NAME$AWS_BUCKET_BACKUP_PATH/$cyear/$cmonth/$dump " "I"				
-		fi
+			  	isSuccess=false
+      				AddLog "Error: Local Upload DB: $db msg: $awsOutput" "E"			  
+		      fi
+	      fi		
+		
 		PushLog
 		rm /tmp/"$dump"     
 
@@ -199,8 +209,9 @@ function BackupDBs()
 
 function Main()
 {
-	ListAllDBs
-	local status=$?
+    SetS3Profiles
+    ListAllDBs
+    local status=$?
     AddLog "ListAllDBs done status:$status" "D"
     if [ "$status" != 0 ];
         then
