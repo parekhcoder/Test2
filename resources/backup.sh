@@ -182,13 +182,16 @@ function BackupDBs()
 		cyear=$(date --date="$cdate" +%Y)
 		cmonth=$(date --date="$cdate" +%m)
 
-		if awsOutput=$(aws --no-verify-ssl  --only-show-errors --endpoint-url=$cloudS3URL s3 cp /tmp/$dump s3://$CLOUD_BUCKET$CLOUD_BUCKET_PATH/$cyear/$cmonth/$dump --profile cloud 2>&1); 
-  		      then
-	  			AddLog "Success: Cloud Upload DB: $db Path:$$CLOUD_BUCKET$CLOUD_BUCKET_PATH/$cyear/$cmonth/$dump " "I"                        
-                      else
-                        	isSuccess=false
-				AddLog "Error: s3upload DB: $db msg: $awsOutput" "E"
-                fi
+  	        if [ "$CLOUD_UPLOAD" = "true" ]; 
+			then
+				if awsOutput=$(aws --no-verify-ssl  --only-show-errors --endpoint-url=$cloudS3URL s3 cp /tmp/$dump s3://$CLOUD_BUCKET$CLOUD_BUCKET_PATH/$cyear/$cmonth/$dump --profile cloud 2>&1); 
+		  		      then
+			  			AddLog "Success: Cloud Upload DB: $db Path:$$CLOUD_BUCKET$CLOUD_BUCKET_PATH/$cyear/$cmonth/$dump " "I"                        
+		                      else
+		                        	isSuccess=false
+						AddLog "Error: s3upload DB: $db msg: $awsOutput" "E"
+		                fi
+		fi
     
 	      if [ "$LOCAL_UPLOAD" = "true" ]; 
 		then
