@@ -45,24 +45,30 @@ function SetS3Profiles()
     local cloudS3UUID=$(jq -r '.[] | select(.title=="'$OPWD_CLOUD_KEY'") | .id' <<< $vaultItems)
     local localS3UUID=$(jq -r '.[] | select(.title=="'$OPWD_LOCAL_KEY'") | .id' <<< $vaultItems)  
     local agePublicKeyUUID=$(jq -r '.[] | select(.title=="'$AGE_PUBLIC_KEY'") | .id' <<< $vaultItems)    
+
+    if [ "$CLOUD_UPLOAD" = "true" ]; 
+    	then
     
-    local cloudS3Item=$(curl -w "\n%{response_code}\n" -s $OPWD_URL/v1/vaults/$vaultUUID/items/$cloudS3UUID -H "Accept: application/json"  -H "Authorization: Bearer $OPWD_TOKEN")
-
-    httpCode=$(tail -n1 <<< "$cloudS3Item")
-    cloudS3Item=$(sed '$ d' <<< "$cloudS3Item")
-
-    if [ "$httpCode" != 200 ];
-        then
-            errorMsg="Get1Pwd Get CloudItem: $cloudS3Item"
-            return -1
-    fi    
-
-    local cloudS3UserName=$(jq -r '.fields[] | select(.id=="username") | .value' <<< $cloudS3Item)
-    local cloudS3Pwd=$(jq -r '.fields[] | select(.id=="password") | .value' <<< $cloudS3Item)
-    cloudS3URL=$(jq -r '.urls[0].href' <<< $cloudS3Item)
-
-    aws configure set aws_access_key_id $cloudS3UserName --profile cloud
-    aws configure set aws_secret_access_key $cloudS3Pwd --profile cloud
+	    local cloudS3Item=$(curl -w "\n%{response_code}\n" -s $OPWD_URL/v1/vaults/$vaultUUID/items/$cloudS3UUID -H "Accept: application/json"  -H "Authorization: Bearer $OPWD_TOKEN")
+	
+	    httpCode=$(tail -n1 <<< "$cloudS3Item")
+	    cloudS3Item=$(sed '$ d' <<< "$cloudS3Item")
+	
+	    if [ "$httpCode" != 200 ];
+	        then
+	            errorMsg="Get1Pwd Get CloudItem: $cloudS3Item"
+	            return -1
+	    fi    
+	
+	    local cloudS3AccessKey=$(jq -r '.fields[] | select(.id=="accesskey") | .value' <<< $cloudS3Item)
+	    local cloudS3SecretKey=$(jq -r '.fields[] | select(.id=="secretkey") | .value' <<< $cloudS3Item)
+	    cloudS3URL=$(jq -r '.urls[0].href' <<< $cloudS3Item)
+	    cloudS3Bucket=$(jq -r '.fields[] | select(.id=="bucket") | .value' <<< $cloudS3Item)
+	    cloudS3BucketPath=$(jq -r '.fields[] | select(.id=="bucketpath") | .value' <<< $cloudS3Item)
+	
+	    aws configure set aws_access_key_id $cloudS3AccessKey --profile cloud
+	    aws configure set aws_secret_access_key $cloudS3SecretKey --profile cloud
+     fi
 
     
     if [ "$LOCAL_UPLOAD" = "true" ]; 
@@ -78,12 +84,14 @@ function SetS3Profiles()
             			return -1
 		fi
 
-      		local localS3UserName=$(jq -r '.fields[] | select(.id=="username") | .value' <<< $localS3Item)
-	    	local localS3Pwd=$(jq -r '.fields[] | select(.id=="password") | .value' <<< $localS3Item)
+      		local localS3AccessKey=$(jq -r '.fields[] | select(.id=="accesskey") | .value' <<< $localS3Item)
+	    	local localS3SecretKey=$(jq -r '.fields[] | select(.id=="secretkey") | .value' <<< $localS3Item)
 	    	localS3URL=$(jq -r '.urls[0].href' <<< $localS3Item)
+      		localS3Bucket=$(jq -r '.fields[] | select(.id=="bucket") | .value' <<< $localS3Item)
+		localS3BucketPath=$(jq -r '.fields[] | select(.id=="bucketpath") | .value' <<< $localS3Item)
 	
-	    	aws configure set aws_access_key_id $localS3UserName --profile local
-	    	aws configure set aws_secret_access_key $localS3Pwd --profile local
+	    	aws configure set aws_access_key_id $localS3AccessKey --profile local
+	    	aws configure set aws_secret_access_key $localS3SecretKey --profile local
     fi        
 
     local agePublicKeyItem=$(curl -s $OPWD_URL/v1/vaults/$vaultUUID/items/$agePublicKeyUUID -H "Accept: application/json"  -H "Authorization: Bearer $OPWD_TOKEN")
@@ -166,7 +174,7 @@ function BackupDBs()
   		AGE_Encrypt=$(echo "$AGE_Encrypt" | awk '{print tolower($0)}')		
   
 		if [ "$AGE_Encrypt" = "true" ]; then
-			if ! ageOutput=$(cat /tmp/"$dump" | age -a -r "$AGE_PUBLIC_KEY" >/tmp/"$dump".age 2>&1);
+			if ! ageOutput=$(cat /tmp/"$dump" | age -a -r "$agePublicKey" >/tmp/"$dump".age 2>&1);
 				then
 					isSuccess=false
 					AddLog "Error: age encyrption DB: $db msg: $ageOutput" "E"
@@ -184,9 +192,9 @@ function BackupDBs()
 
   	        if [ "$CLOUD_UPLOAD" = "true" ]; 
 			then
-				if awsOutput=$(aws --no-verify-ssl  --only-show-errors --endpoint-url=$cloudS3URL s3 cp /tmp/$dump s3://$CLOUD_BUCKET$CLOUD_BUCKET_PATH/$cyear/$cmonth/$dump --profile cloud 2>&1); 
+				if awsOutput=$(aws --no-verify-ssl  --only-show-errors --endpoint-url=$cloudS3URL s3 cp /tmp/$dump s3://$cloudS3Bucket$cloudS3BucketPath/$cyear/$cmonth/$dump --profile cloud 2>&1); 
 		  		      then
-			  			AddLog "Success: Cloud Upload DB: $db Path:$$CLOUD_BUCKET$CLOUD_BUCKET_PATH/$cyear/$cmonth/$dump " "I"                        
+			  			AddLog "Success: Cloud Upload DB: $db Path:$cloudS3Bucket$cloudS3BucketPath/$cyear/$cmonth/$dump " "I"                        
 		                      else
 		                        	isSuccess=false
 						AddLog "Error: s3upload DB: $db msg: $awsOutput" "E"
@@ -195,9 +203,9 @@ function BackupDBs()
     
 	      if [ "$LOCAL_UPLOAD" = "true" ]; 
 		then
-		      if awsOutput=$(aws --no-verify-ssl --only-show-errors --endpoint-url=$localS3URL s3 cp /tmp/$dump s3://$LOCAL_BUCKET$LOCAL_BUCKET_PATH/$cyear/$cmonth/$dump --profile local 2>&1); 
+		      if awsOutput=$(aws --no-verify-ssl --only-show-errors --endpoint-url=$localS3URL s3 cp /tmp/$dump s3://$localS3Bucket$localS3BucketPath/$cyear/$cmonth/$dump --profile local 2>&1); 
 			then
-			 	 AddLog "Success: Local Upload DB: $db Path:$LOCAL_BUCKET$LOCAL_BUCKET_PATH/$cyear/$cmonth/$dump" "I"
+			 	 AddLog "Success: Local Upload DB: $db Path:$localS3Bucket$localS3BucketPath/$cyear/$cmonth/$dump" "I"
 			else
 			  	isSuccess=false
       				AddLog "Error: Local Upload DB: $db msg: $awsOutput" "E"			  
