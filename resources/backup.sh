@@ -60,11 +60,11 @@ function SetS3Profiles()
 	            return -1
 	    fi    
 	
-	    local cloudS3AccessKey=$(jq -r '.fields[] | select(.id=="accesskey") | .value' <<< $cloudS3Item)
-	    local cloudS3SecretKey=$(jq -r '.fields[] | select(.id=="secretkey") | .value' <<< $cloudS3Item)
+	    local cloudS3AccessKey=$(jq -r '.fields[] | select(.label=="accesskey") | .value' <<< $cloudS3Item)
+	    local cloudS3SecretKey=$(jq -r '.fields[] | select(.label=="secretkey") | .value' <<< $cloudS3Item)
 	    cloudS3URL=$(jq -r '.urls[0].href' <<< $cloudS3Item)
-	    cloudS3Bucket=$(jq -r '.fields[] | select(.id=="bucket") | .value' <<< $cloudS3Item)
-	    cloudS3BucketPath=$(jq -r '.fields[] | select(.id=="bucketpath") | .value' <<< $cloudS3Item)
+	    cloudS3Bucket=$(jq -r '.fields[] | select(.label=="bucket") | .value' <<< $cloudS3Item)
+	    cloudS3BucketPath=$(jq -r '.fields[] | select(.label=="bucketpath") | .value' <<< $cloudS3Item)
 	
 	    aws configure set aws_access_key_id $cloudS3AccessKey --profile cloud
 	    aws configure set aws_secret_access_key $cloudS3SecretKey --profile cloud
@@ -84,11 +84,11 @@ function SetS3Profiles()
             			return -1
 		fi
 
-      		local localS3AccessKey=$(jq -r '.fields[] | select(.id=="accesskey") | .value' <<< $localS3Item)
-	    	local localS3SecretKey=$(jq -r '.fields[] | select(.id=="secretkey") | .value' <<< $localS3Item)
+      		local localS3AccessKey=$(jq -r '.fields[] | select(.label=="accesskey") | .value' <<< $localS3Item)
+	    	local localS3SecretKey=$(jq -r '.fields[] | select(.label=="secretkey") | .value' <<< $localS3Item)
 	    	localS3URL=$(jq -r '.urls[0].href' <<< $localS3Item)
-      		localS3Bucket=$(jq -r '.fields[] | select(.id=="bucket") | .value' <<< $localS3Item)
-		localS3BucketPath=$(jq -r '.fields[] | select(.id=="bucketpath") | .value' <<< $localS3Item)
+      		localS3Bucket=$(jq -r '.fields[] | select(.label=="bucket") | .value' <<< $localS3Item)
+		localS3BucketPath=$(jq -r '.fields[] | select(.label=="bucketpath") | .value' <<< $localS3Item)
 	
 	    	aws configure set aws_access_key_id $localS3AccessKey --profile local
 	    	aws configure set aws_secret_access_key $localS3SecretKey --profile local
