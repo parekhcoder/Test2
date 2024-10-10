@@ -203,7 +203,7 @@ function BackupDBs()
     
 	      if [ "$LOCAL_UPLOAD" = "true" ]; 
 		then
-		      if awsOutput=$(aws --no-verify-ssl --only-show-errors --endpoint-url=$localS3URL s3 cp /tmp/$dump s3://$localS3Bucket$localS3BucketPath/$cyear/$cmonth/$dump --profile local 2>&1); 
+		      if awsOutput=$(aws --only-show-errors --ca-bundle=/var/custom/star_easltech_com.crt --endpoint-url=$localS3URL s3 cp /tmp/$dump s3://$localS3Bucket$localS3BucketPath/$cyear/$cmonth/$dump --profile local 2>&1); 
 			then
 			 	 AddLog "Success: Local Upload DB: $db Path:$localS3Bucket$localS3BucketPath/$cyear/$cmonth/$dump" "I"
 			else
