@@ -69,5 +69,5 @@ function AddLog
    
     log=$(jq --arg logMsg "$logMsg" ".\"@mt\" = $logMsg" <<< $log)        
     echo "log: $log"
-    logJSON=$(jq ".Events[.Events | length] |= . + $log" <<< $logJSON)        
+    #logJSON=$(jq ".Events[.Events | length] |= . + $log" <<< $logJSON)        
 }
