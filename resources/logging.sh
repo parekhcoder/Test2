@@ -7,9 +7,9 @@ function InitializeLog
 
 function PushLog
 {  
-    #noOfLogs=$(jq '.Events[] | length' <<< $logJSON)
+    # noOfLogs=$(jq '.Events[] | length' <<< $logJSON)
 
-    #if [ "$APILOGGING" = "true" ]
+    # if [ "$APILOGGING" = "true" ]
     #    then
     #        if [ "$noOfLogs" > 0 ] ;
     #            then
@@ -28,8 +28,8 @@ function PushLog
     #        fi
     #    else
     #        echo "API Logging disabled"
-    #fi
-    
+    # fi
+    echo ""
 } 
 
 function AddLog
