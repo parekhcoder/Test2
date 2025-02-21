@@ -8,9 +8,8 @@ function LogNExit()
     if [ "$isSuccess" != true ];
         then            
             status=1
-    fi   
+    fi     
     
-    PushLog
 
     exit "$status"
 }
@@ -212,7 +211,6 @@ function BackupDBs()
 		      fi
 	      fi		
 		
-		PushLog
 		rm /tmp/"$dump"     
 
     done
@@ -237,7 +235,6 @@ function Main()
         then
             isSucess=false            
             LogNExit
-    fi
-	PushLog
+    fi	
 }
 Main
