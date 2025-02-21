@@ -1,5 +1,5 @@
 # !/bin/bash
-. /logging.sh
+
 isSuccess=true
 
 function LogNExit()
@@ -25,7 +25,7 @@ function SetS3Profiles()
             return -1
     fi
 
-    AddLog "Got Vaults" "D"
+    echo "Got Vaults"
     
     local vaultUUID=$(jq -r '.[] | select(.name=="'$OPWD_VAULT'") | .id' <<< $vaults)
     echo "VaultID: $vaultUUID" 
@@ -39,7 +39,7 @@ function SetS3Profiles()
             return -1
     fi
 
-    AddLog "Got Vault Items" "D"    
+    echo "Got Vault Items"    
     
     local cloudS3UUID=$(jq -r '.[] | select(.title=="'$OPWD_CLOUD_KEY'") | .id' <<< $vaultItems)
     local localS3UUID=$(jq -r '.[] | select(.title=="'$OPWD_LOCAL_KEY'") | .id' <<< $vaultItems)  
@@ -106,7 +106,7 @@ function ListAllDBs()
     
 			if [ ! -z "$TARGET_DATABASE_NAMES" ];
 				then        
-					AddLog "TARGET_ALL_DATABASES is true and TARGET_DATABASE_NAMES isn't empty, ignoring TARGET_DATABASE_NAMES" "D"
+					echo "TARGET_ALL_DATABASES is true and TARGET_DATABASE_NAMES isn't empty, ignoring TARGET_DATABASE_NAMES"
 					TARGET_DATABASE_NAMES=""
 			fi
 		
@@ -115,14 +115,14 @@ function ListAllDBs()
 			
 			if ! dbList=`mysql -u $TARGET_DATABASE_USER -h $TARGET_DATABASE_HOST -p$TARGET_DATABASE_PASSWORD -P $TARGET_DATABASE_PORT -ANe"${dbSQLCmd}"`
 				then        
-					AddLog "Error: Building list of all databases failed" "E"
+					echo "Error: Building list of all databases failed"
 					isSuccess=false
 					return -1
 			fi
 			
 			TARGET_DATABASE_NAMES=$dbList        
 			
-			AddLog "Built list of all databases (${TARGET_DATABASE_NAMES})" "D"    		
+			echo "Built list of all databases (${TARGET_DATABASE_NAMES})"
 	
 			
 	fi			
@@ -144,12 +144,12 @@ function BackupDBs()
         dump=$db$(date +$BACKUP_TIMESTAMP).sql        
         
         if ! sqlOutput=$(mysqldump -u $TARGET_DATABASE_USER -h $TARGET_DATABASE_HOST -p$TARGET_DATABASE_PASSWORD -P $TARGET_DATABASE_PORT $BACKUP_ADDITIONAL_PARAMS $BACKUP_CREATE_DATABASE_STATEMENT $db 2>&1 > /tmp/$dump); then
-			AddLog "Error: failed DB: $db msg: $sqloutput" "E"
+			echo "Error: failed DB: $db msg: $sqloutput"
 			isSuccess=false
 			continue
 		fi            
             
-		AddLog "Success: DB backup $db $dump" "I"		
+		echo "Success: DB backup $db $dump"
 		
 		BACKUP_COMPRESS=$(echo "$BACKUP_COMPRESS" | awk '{print tolower($0)}')
 		
@@ -160,7 +160,7 @@ function BackupDBs()
 			if ! gzipOutput=$(gzip -${BACKUP_COMPRESS_LEVEL} -c /tmp/"$dump" >/tmp/"$dump".gz 2>&1);
 				then
 					isSuccess=false
-					AddLog "Error: gzip DB: $db msg: $gzipOutput" "E"
+					echo "Error: gzip DB: $db msg: $gzipOutput"
 					rm /tmp/"$dump"
 					/tmp/"$dump".gz
 					continue
@@ -176,7 +176,7 @@ function BackupDBs()
 			if ! ageOutput=$(cat /tmp/"$dump" | age -a -r "$agePublicKey" >/tmp/"$dump".age 2>&1);
 				then
 					isSuccess=false
-					AddLog "Error: age encyrption DB: $db msg: $ageOutput" "E"
+					echo "Error: age encyrption DB: $db msg: $ageOutput"
 					rm /tmp/"$dump"
 					rm /tmp/"$dump".age
 					continue
@@ -193,10 +193,10 @@ function BackupDBs()
 			then
 				if awsOutput=$(aws --no-verify-ssl  --only-show-errors --endpoint-url=$cloudS3URL s3 cp /tmp/$dump s3://$cloudS3Bucket$cloudS3BucketPath/$cyear/$cmonth/$dump --profile cloud 2>&1); 
 		  		      then
-			  			AddLog "Success: Cloud Upload DB: $db Path:$cloudS3Bucket$cloudS3BucketPath/$cyear/$cmonth/$dump " "I"                        
+			  			echo "Success: Cloud Upload DB: $db Path:$cloudS3Bucket$cloudS3BucketPath/$cyear/$cmonth/$dump "
 		                      else
 		                        	isSuccess=false
-						AddLog "Error: s3upload DB: $db msg: $awsOutput" "E"
+						echo "Error: s3upload DB: $db msg: $awsOutput"
 		                fi
 		fi
     
@@ -204,10 +204,10 @@ function BackupDBs()
 		then
 		      if awsOutput=$(aws --no-verify-ssl --only-show-errors --endpoint-url=$localS3URL s3 cp /tmp/$dump s3://$localS3Bucket$localS3BucketPath/$cyear/$cmonth/$dump --profile local 2>&1); 
 			then
-			 	 AddLog "Success: Local Upload DB: $db Path:$localS3Bucket$localS3BucketPath/$cyear/$cmonth/$dump" "I"
+			 	 echo "Success: Local Upload DB: $db Path:$localS3Bucket$localS3BucketPath/$cyear/$cmonth/$dump"
 			else
 			  	isSuccess=false
-      				AddLog "Error: Local Upload DB: $db msg: $awsOutput" "E"			  
+      				echo "Error: Local Upload DB: $db msg: $awsOutput"
 		      fi
 	      fi		
 		
@@ -221,7 +221,7 @@ function Main()
     SetS3Profiles
     ListAllDBs
     local status=$?
-    AddLog "ListAllDBs done status:$status" "D"
+    echo "ListAllDBs done status:$status"
     if [ "$status" != 0 ];
         then
             isSucess=false            
@@ -230,7 +230,7 @@ function Main()
 	
 	BackupDBs
 	local status=$?
-    AddLog "BackupDBs done status:$status" "D"
+    echo "BackupDBs done status:$status"
     if [ "$status" != 0 ];
         then
             isSucess=false            
