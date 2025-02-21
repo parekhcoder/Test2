@@ -9,19 +9,24 @@ function PushLog
 {  
     noOfLogs=$(jq '.Events[] | length' <<< $logJSON)
 
-    if [ "$noOfLogs" > 0 ];
+    if [ "$APILOGGING" = "true" ]
         then
-            curlOutput=$(curl -s -w "\n%{response_code}\n" -X POST $LOGAPIURL -H "Content-Type: application/json" -d "$logJSON")    
-            httpCode=$(tail -n1 <<< "$curlOutput")
-            curlOutput=$(sed '$ d' <<< "$curlOutput")
-        
-            if [ "$httpCode" != 200 ];
-               then
-                   echo "Error: while calling logging api- $curlOutput"      
-            fi  
-            InitializeLog
+            if [ "$noOfLogs" > 0 ] ;
+                then
+                    curlOutput=$(curl -s -w "\n%{response_code}\n" -X POST $LOGAPIURL -H "Content-Type: application/json" -d "$logJSON")    
+                    httpCode=$(tail -n1 <<< "$curlOutput")
+                    curlOutput=$(sed '$ d' <<< "$curlOutput")
+                
+                    if [ "$httpCode" != 200 ];
+                       then
+                           echo "Error: while calling logging api- $curlOutput"      
+                    fi  
+                    InitializeLog
+                else
+                    echo "No logs to push"
+            fi
         else
-            echo "No logs to push"
+            echo "API Logging disabled"
     fi
     
 } 
