@@ -532,7 +532,10 @@ main() {
     return "$overall_script_status"
 }
 
-# Execute main function
-exec bash -c 'main'
-log_msg "FATAL" "exec bash -c 'main' failed."
-exit 1
+main
+status=$?
+if [[ $status -ne 0 ]]; then
+    log_msg "FATAL" "main function failed with status: $status"
+    exit $status
+fi
+exit 0
