@@ -336,6 +336,12 @@ backup_dbs() {
     local create_db_stmt=""
     [[ "${BACKUP_CREATE_DATABASE_STATEMENT:-false}" == "true" ]] && create_db_stmt="--databases"
 
+    # Split BACKUP_ADDITIONAL_PARAMS into an array
+    local additional_params=()
+    if [[ -n "${BACKUP_ADDITIONAL_PARAMS:-}" ]]; then
+        read -ra additional_params <<< "${BACKUP_ADDITIONAL_PARAMS}"
+    fi
+
     local overall_backup_status=0
 
     for db in "${TARGET_DATABASE_NAMES[@]}"; do
@@ -344,9 +350,9 @@ backup_dbs() {
         local tmp_err_file="$tmp_dir/${db}_err.log"
 
         log_msg "DEBUG" "Running mysqldump for $db..."
-        # Add --single-transaction and --quick for InnoDB performance
+        # Pass additional_params as an array to ensure proper splitting
         if ! mysqldump --defaults-file="$mysql_cnf" --single-transaction --quick \
-            ${BACKUP_ADDITIONAL_PARAMS:-} $create_db_stmt "$db" > "$dump" 2> >(tee "$tmp_err_file" >&2); then
+            "${additional_params[@]}" "$create_db_stmt" "$db" > "$dump" 2> >(tee "$tmp_err_file" >&2); then
             log_msg "ERROR" "mysqldump failed for database: $db. Error: $(cat "$tmp_err_file" | head -n 1)"
             rm -f "$dump" "$tmp_err_file"
             overall_backup_status=1
@@ -355,7 +361,6 @@ backup_dbs() {
         rm -f "$tmp_err_file"
         log_msg "DEBUG" "Database backup created at $dump"
 
-        # Verify backup file is not empty
         if [[ ! -s "$dump" ]]; then
             log_msg "ERROR" "Backup file for $db is empty."
             rm -f "$dump"
@@ -368,7 +373,7 @@ backup_dbs() {
 
         if [[ "${BACKUP_COMPRESS:-false}" == "true" ]]; then
             log_msg "DEBUG" "Compressing $db backup..."
-            local level="${BACKUP_COMPRESS_LEVEL:-6}" # Default to 6 for balance
+            local level="${BACKUP_COMPRESS_LEVEL:-6}"
             if ! gzip -"$level" -c "$dump_file" > "$dump_file.gz"; then
                 log_msg "ERROR" "gzip failed for database: $db."
                 rm -f "$dump_file" "$dump_file.gz"
@@ -408,7 +413,6 @@ backup_dbs() {
 
         if [[ "${CLOUD_UPLOAD:-false}" == "true" ]]; then
             log_msg "DEBUG" "Uploading $db backup to cloud S3..."
-            # Add retries for S3 upload
             if ! aws --no-verify-ssl --only-show-errors --endpoint-url="$cloud_s3_url" \
                 s3 cp "$dump_file" "s3://$cloud_s3_bucket$cloud_s3_bucket_path/$cyear/$cmonth/$final_dump_name" \
                 --profile cloud --tries 3; then
