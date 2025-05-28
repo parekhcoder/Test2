@@ -3,7 +3,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 # Check required tools
-for tool in jq aws mysql mysqldump gzip age curl; do
+for tool in jq aws mysql mysqldump gzip age curl sleep; do 
     if ! command -v "$tool" &>/dev/null; then
         echo "Error: $tool is not installed." >&2
         exit 1
@@ -16,8 +16,8 @@ function LogMsg() {
     timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     local level="$1"
     local message="$2"
-    local jsonLog
-    jsonLog=$(jq -n --arg t "$timestamp" --arg a "${App_Name:-unknown}" --arg l "$level" --arg m "$message" --arg n "${NODE_NAME:-unknown}" --arg p "${POD_NAME:-unknown}"  '{@timestamp: $t, appname: $a, level:$l, message: $m, nodename: $n, podname: $p }')
+    local jsonLog    
+    local jsonLog=$(jq -n --arg t "$timestamp" --arg a "$appName" --arg l "$level" --arg m "$message" --arg n "$nodeName" --arg p "$podName"  '{"@timestamp": $t, "appname": $a, "level": $l, "message": $m, "nodename": $n, "podname": $p }')
     echo "$jsonLog" | tee -a "$logFile"
 }
 
@@ -30,7 +30,7 @@ trap cleanup_tmp EXIT
 # Get secrets from vault and set S3 profiles
 function GetVaultItemsNSetS3Profiles() {
     local vaults http_code vaultUUID vaultItems cloudS3UUID localS3UUID mysqlUUID agePublicKeyUUID
-    vaults=$(curl -s -w "\n%{response_code}\n" "$OPWD_URL/v1/vaults" -H "Accept: application/json"  -H "Authorization: Bearer $OPWD_TOKEN")
+    vaults=$(curl -s -w "\n%{response_code}\n" "$OPWD_URL/v1/vaults" -H "Accept: application/json"  H "Authorization: Bearer $OPWD_TOKEN")
     http_code=$(tail -n1 <<< "$vaults")
     vaults=$(sed '$ d' <<< "$vaults")
     if [[ "$http_code" != "200" ]]; then
@@ -57,7 +57,7 @@ function GetVaultItemsNSetS3Profiles() {
     agePublicKeyUUID=$(jq -r '.[] | select(.title=="'"$AGE_PUBLIC_KEY"'") | .id' <<< "$vaultItems")
     if [[ "${CLOUD_UPLOAD:-false}" == "true" ]]; then
         local cloudS3Item httpCode
-        cloudS3Item=$(curl -w "\n%{response_code}\n" -s "$OPWD_URL/v1/vaults/$vaultUUID/items/$cloudS3UUID" -H "Accept: application/json"  -H "Authorization: Bearer $OPWD_TOKEN")
+        cloudS3Item=$(curl -w "\n%{response_code}\\n" -s "$OPWD_URL/v1/vaults/$vaultUUID/items/$cloudS3UUID" -H "Accept: application/json"  -H "Authorization: Bearer $OPWD_TOKEN")
         httpCode=$(tail -n1 <<< "$cloudS3Item")
         cloudS3Item=$(sed '$ d' <<< "$cloudS3Item")
         if [[ "$httpCode" != "200" ]]; then
@@ -74,7 +74,7 @@ function GetVaultItemsNSetS3Profiles() {
     fi
     if [[ "${LOCAL_UPLOAD:-false}" == "true" ]]; then
         local localS3Item httpCode
-        localS3Item=$(curl -w "\n%{response_code}\n" -s "$OPWD_URL/v1/vaults/$vaultUUID/items/$localS3UUID" -H "Accept: application/json"  -H "Authorization: Bearer $OPWD_TOKEN")
+        localS3Item=$(curl -w "\n%{response_code}\\n" -s "$OPWD_URL/v1/vaults/$vaultUUID/items/$localS3UUID" -H "Accept: application/json"  -H "Authorization: Bearer $OPWD_TOKEN")
         httpCode=$(tail -n1 <<< "$localS3Item")
         localS3Item=$(sed '$ d' <<< "$localS3Item")
         if [[ "$httpCode" != "200" ]]; then
@@ -90,7 +90,7 @@ function GetVaultItemsNSetS3Profiles() {
         aws configure set aws_secret_access_key "$localS3SecretKey" --profile local
     fi
     local agePublicKeyItem httpCode
-    agePublicKeyItem=$(curl -w "\n%{response_code}\n" -s "$OPWD_URL/v1/vaults/$vaultUUID/items/$agePublicKeyUUID" -H "Accept: application/json"  -H "Authorization: Bearer $OPWD_TOKEN")
+    agePublicKeyItem=$(curl -w "\n%{response_code}\\n" -s "$OPWD_URL/v1/vaults/$vaultUUID/items/$agePublicKeyUUID" -H "Accept: application/json"  -H "Authorization: Bearer $OPWD_TOKEN")
     httpCode=$(tail -n1 <<< "$agePublicKeyItem")
     agePublicKeyItem=$(sed '$ d' <<< "$agePublicKeyItem")
     if [[ "$httpCode" != "200" ]]; then
@@ -99,7 +99,7 @@ function GetVaultItemsNSetS3Profiles() {
     fi
     agePublicKey=$(jq -r '.fields[] | select(.id=="credential") | .value' <<< "$agePublicKeyItem")
     local mysqlItem
-    mysqlItem=$(curl -w "\n%{response_code}\n" -s "$OPWD_URL/v1/vaults/$vaultUUID/items/$mysqlUUID" -H "Accept: application/json"  -H "Authorization: Bearer $OPWD_TOKEN")
+    mysqlItem=$(curl -w "\n%{response_code}\\n" -s "$OPWD_URL/v1/vaults/$vaultUUID/items/$mysqlUUID" -H "Accept: application/json"  H "Authorization: Bearer $OPWD_TOKEN")
     httpCode=$(tail -n1 <<< "$mysqlItem")
     mysqlItem=$(sed '$ d' <<< "$mysqlItem")
     if [[ "$httpCode" != "200" ]]; then
@@ -142,12 +142,13 @@ function BackupDBs() {
     fi
     for db in "${TARGET_DATABASE_NAMES[@]}"; do
         local dump="backup_${db}_$(date +${BACKUP_TIMESTAMP:-%Y%m%d%H%M%S}).sql"
-        if ! mysqldump -u "$dbUser" -h "$dbHost" -p"$dbPwd" -P "$dbPort" ${BACKUP_ADDITIONAL_PARAMS:-} $create_db_stmt "$db" > "/tmp/$dump" 2> >(tee /tmp/${dump}.err >&2); then
-            LogMsg "Error" "failed DB: $db msg: $(cat /tmp/${dump}.err)"
-            rm -f "/tmp/$dump" "/tmp/${dump}.err"
+        local tmp_err_file="/tmp/${dump}.err"
+        if ! mysqldump -u "$dbUser" -h "$dbHost" -p"$dbPwd" -P "$dbPort" ${BACKUP_ADDITIONAL_PARAMS:-} $create_db_stmt "$db" > "/tmp/$dump" 2> >(tee "$tmp_err_file" >&2); then
+            LogMsg "Error" "failed DB: $db msg: $(cat "$tmp_err_file")"
+            rm -f "/tmp/$dump" "$tmp_err_file"
             continue
         fi
-        rm -f "/tmp/${dump}.err"
+        rm -f "$tmp_err_file"
         LogMsg "Debug" "DB backup $db $dump"
         local dumpfile="/tmp/$dump"
         if [[ "${BACKUP_COMPRESS:-false}" == "true" ]]; then
@@ -181,14 +182,14 @@ function BackupDBs() {
             if aws --no-verify-ssl --only-show-errors --endpoint-url="$cloudS3URL" s3 cp "$dumpfile" "s3://$cloudS3Bucket$cloudS3BucketPath/$cyear/$cmonth/$dump" --profile cloud; then
                 LogMsg "Information" "Cloud Upload DB: $db Path:$cloudS3Bucket$cloudS3BucketPath/$cyear/$cmonth/$dump"
             else
-                LogMsg "Error" "s3upload DB: $db failed"
+                LogMsg "Error" "Cloud s3 upload DB: $db failed"
             fi
         fi
         if [[ "${LOCAL_UPLOAD:-false}" == "true" ]]; then
             if aws --no-verify-ssl --only-show-errors --endpoint-url="$localS3URL" s3 cp "$dumpfile" "s3://$localS3Bucket$localS3BucketPath/$cyear/$cmonth/$dump" --profile local; then
                 LogMsg "Information" "Local Upload DB: $db Path:$localS3Bucket$localS3BucketPath/$cyear/$cmonth/$dump"
             else
-                LogMsg "Error" "Local Upload DB: $db failed"
+                LogMsg "Error" "Local s3 upload DB: $db failed"
             fi
         fi
         rm -f "$dumpfile"
@@ -197,35 +198,53 @@ function BackupDBs() {
 
 # Main function
 function Main() {
-    mkdir -p "${LOG_DIR:-/var/log/mysql_backup}" # Default log dir if not set
+    mkdir -p "${LOG_DIR:-/app/log}"
     local year month podName nodeName
     year=$(date +%Y)
     month=$(date +%m)
     podName="${POD_NAME:-$(hostname)}"
     nodeName="${NODE_NAME:-unknown}"
-    logFile="${LOG_DIR:-/var/log/mysql_backup}/${year}_${month}_${podName}.log"
+    appName="${APP_NAME:-unknown}"
+    logFile="${LOG_DIR:-/app/log}/${year}_${month}_${podName}.log"
+
+    LogMsg "Information" "Script started."
+
     GetVaultItemsNSetS3Profiles
     local status=$?
     LogMsg "Debug" "GetVaultItemsNSetS3Profiles done status:$status"
     if [[ "$status" != 0 ]]; then
-        exit 1
+        LogMsg "Error" "Initialization failed."
+        exit 1 # Exit on initialization failure
     fi
+
     ListAllDBs
     status=$?
     LogMsg "Debug" "ListAllDBs done status:$status"
     if [[ "$status" != 0 ]]; then
-        exit 1
+        LogMsg "Error" "Listing databases failed."
+        exit 1 # Exit on DB listing failure
     fi
+
     BackupDBs
     status=$?
     LogMsg "Debug" "BackupDBs done status:$status"
     if [[ "$status" != 0 ]]; then
-        exit 1
+         LogMsg "Warning" "Database backup failed for one or more databases."
+         # The script continues even if some DBs fail to backup.
+         # If We want ANY DB failure to cause the script to exit with an error, uncomment the line below:
+         # exit 1
     fi
+
+    LogMsg "Information" "Script finished main tasks."
+    
+    if [[ -n "${SCRIPT_POST_RUN_SLEEP_SECONDS:-}" && "$SCRIPT_POST_RUN_SLEEP_SECONDS" =~ ^[0-9]+$ && "$SCRIPT_POST_RUN_SLEEP_SECONDS" -gt 0 ]]; then
+        LogMsg "Debug" "Sleeping for ${SCRIPT_POST_RUN_SLEEP_SECONDS} seconds to allow log processing."
+        sleep "$SCRIPT_POST_RUN_SLEEP_SECONDS"
+        LogMsg "Debug" "Sleep completed."
+    fi
+
+    exit 0 
 }
 
+# Execute the Main function
 Main
-
-if [[ "${DEBUG_MODE:-false}" == "true" ]]; then
-	tail -f /dev/null
- fi
