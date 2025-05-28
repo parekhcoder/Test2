@@ -336,10 +336,24 @@ backup_dbs() {
     local create_db_stmt=""
     [[ "${BACKUP_CREATE_DATABASE_STATEMENT:-false}" == "true" ]] && create_db_stmt="--databases"
 
-    # Split BACKUP_ADDITIONAL_PARAMS into an array
+    # Split and validate BACKUP_ADDITIONAL_PARAMS
     local additional_params=()
     if [[ -n "${BACKUP_ADDITIONAL_PARAMS:-}" ]]; then
-        read -ra additional_params <<< "${BACKUP_ADDITIONAL_PARAMS}"
+        # Remove leading/trailing whitespace
+        BACKUP_ADDITIONAL_PARAMS=$(echo "${BACKUP_ADDITIONAL_PARAMS}" | tr -s ' ' | sed 's/^ *//;s/ *$//')
+        # Split into array
+        IFS=' ' read -ra additional_params <<< "${BACKUP_ADDITIONAL_PARAMS}"
+        # Validate each parameter
+        for param in "${additional_params[@]}"; do
+            if [[ ! "$param" =~ ^--[a-zA-Z0-9_-]+(=.*)?$ ]]; then
+                log_msg "ERROR" "Invalid mysqldump parameter: '$param'. Must start with '--'."
+                return 1
+            fi
+            # Warn about redundant options
+            if [[ "$param" == "--quick" || "$param" == "--skip-lock-tables" ]]; then
+                log_msg "WARN" "Redundant option '$param' in BACKUP_ADDITIONAL_PARAMS; already handled by script."
+            fi
+        done
     fi
 
     local overall_backup_status=0
@@ -349,8 +363,8 @@ backup_dbs() {
         local dump="$tmp_dir/backup_${db}_$(date +${BACKUP_TIMESTAMP:-%Y%m%d%H%M%S}).sql"
         local tmp_err_file="$tmp_dir/${db}_err.log"
 
-        log_msg "DEBUG" "Running mysqldump for $db..."
-        # Pass additional_params as an array to ensure proper splitting
+        log_msg "DEBUG" "Running mysqldump for $db with params: --defaults-file=$mysql_cnf --single-transaction --quick ${additional_params[*]} $create_db_stmt $db"
+        # Use array expansion for additional_params
         if ! mysqldump --defaults-file="$mysql_cnf" --single-transaction --quick \
             "${additional_params[@]}" "$create_db_stmt" "$db" > "$dump" 2> >(tee "$tmp_err_file" >&2); then
             log_msg "ERROR" "mysqldump failed for database: $db. Error: $(cat "$tmp_err_file" | head -n 1)"
