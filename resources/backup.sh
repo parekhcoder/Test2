@@ -91,7 +91,7 @@ function GetVaultItemsNSetS3Profiles() {
     agePublicKeyUUID=$(jq -r '.[] | select(.title=="'"${AGE_PUBLIC_KEY:-}"'") | .id' <<< "$vaultItems")
 
     if [[ "${CLOUD_UPLOAD:-false}" == "true" && -z "$cloudS3UUID" ]]; then LogMsg "Error" "Cloud S3 Key '${OPWD_CLOUD_KEY:-}' not found in vault items."; return 1; fi
-    if [[ "${LOCAL_UPLOAD:-false}" == "true" && -z "$localS3UUID" ]]; then LogMsg "Error" "Local S3 Key '${OPWD_LOCAL_KEY:-}' not found in vault items."; return 1; }
+    if [[ "${LOCAL_UPLOAD:-false}" == "true" && -z "$localS3UUID" ]]; then LogMsg "Error" "Local S3 Key '${OPWD_LOCAL_KEY:-}' not found in vault items."; return 1; fi
     if [[ -z "$mysqlUUID" ]]; then LogMsg "Error" "MySQL Key '${OPWD_MYSQL_KEY:-}' not found in vault items."; return 1; fi
 
     LogMsg "Debug" "Item UUIDs found."
