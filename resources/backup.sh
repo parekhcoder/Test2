@@ -326,6 +326,7 @@ list_all_dbs() {
 }
 
 # Backup databases
+# Backup databases
 backup_dbs() {
     log_msg "DEBUG" "Starting backup_dbs function."
     if [[ "${#TARGET_DATABASE_NAMES[@]}" -eq 0 ]]; then
@@ -336,26 +337,6 @@ backup_dbs() {
     local create_db_stmt=""
     [[ "${BACKUP_CREATE_DATABASE_STATEMENT:-false}" == "true" ]] && create_db_stmt="--databases"
 
-    # Split and validate BACKUP_ADDITIONAL_PARAMS
-    local additional_params=()
-    if [[ -n "${BACKUP_ADDITIONAL_PARAMS:-}" ]]; then
-        # Remove leading/trailing whitespace
-        BACKUP_ADDITIONAL_PARAMS=$(echo "${BACKUP_ADDITIONAL_PARAMS}" | tr -s ' ' | sed 's/^ *//;s/ *$//')
-        # Split into array
-        IFS=' ' read -ra additional_params <<< "${BACKUP_ADDITIONAL_PARAMS}"
-        # Validate each parameter
-        for param in "${additional_params[@]}"; do
-            if [[ ! "$param" =~ ^--[a-zA-Z0-9_-]+(=.*)?$ ]]; then
-                log_msg "ERROR" "Invalid mysqldump parameter: '$param'. Must start with '--'."
-                return 1
-            fi
-            # Warn about redundant options
-            if [[ "$param" == "--quick" || "$param" == "--skip-lock-tables" ]]; then
-                log_msg "WARN" "Redundant option '$param' in BACKUP_ADDITIONAL_PARAMS; already handled by script."
-            fi
-        done
-    fi
-
     local overall_backup_status=0
 
     for db in "${TARGET_DATABASE_NAMES[@]}"; do
@@ -363,10 +344,9 @@ backup_dbs() {
         local dump="$tmp_dir/backup_${db}_$(date +${BACKUP_TIMESTAMP:-%Y%m%d%H%M%S}).sql"
         local tmp_err_file="$tmp_dir/${db}_err.log"
 
-        log_msg "DEBUG" "Running mysqldump for $db with params: --defaults-file=$mysql_cnf --single-transaction --quick ${additional_params[*]} $create_db_stmt $db"
-        # Use array expansion for additional_params
+        log_msg "DEBUG" "Running mysqldump for $db..."
         if ! mysqldump --defaults-file="$mysql_cnf" --single-transaction --quick \
-            "${additional_params[@]}" "$create_db_stmt" "$db" > "$dump" 2> >(tee "$tmp_err_file" >&2); then
+            ${BACKUP_ADDITIONAL_PARAMS:-} "$create_db_stmt" "$db" > "$dump" 2> >(tee "$tmp_err_file" >&2); then
             log_msg "ERROR" "mysqldump failed for database: $db. Error: $(cat "$tmp_err_file" | head -n 1)"
             rm -f "$dump" "$tmp_err_file"
             overall_backup_status=1
@@ -427,10 +407,12 @@ backup_dbs() {
 
         if [[ "${CLOUD_UPLOAD:-false}" == "true" ]]; then
             log_msg "DEBUG" "Uploading $db backup to cloud S3..."
-            if ! aws --no-verify-ssl --only-show-errors --endpoint-url="$cloud_s3_url" \
+            local s3_error
+            s3_error=$(aws --no-verify-ssl --endpoint-url="$cloud_s3_url" \
                 s3 cp "$dump_file" "s3://$cloud_s3_bucket$cloud_s3_bucket_path/$cyear/$cmonth/$final_dump_name" \
-                --profile cloud --tries 3; then
-                log_msg "ERROR" "Cloud S3 upload failed for database: $db."
+                --profile cloud --tries 3 2>&1 || true)
+            if [[ $? -ne 0 ]]; then
+                log_msg "ERROR" "Cloud S3 upload failed for database: $db. Error: $s3_error"
                 overall_backup_status=1
             else
                 log_msg "INFO" "Cloud upload completed for $db: $cloud_s3_bucket$cloud_s3_bucket_path/$cyear/$cmonth/$final_dump_name"
@@ -443,10 +425,12 @@ backup_dbs() {
                 "$cloud_s3_bucket" == "$local_s3_bucket" && "$cloud_s3_bucket_path" == "$local_s3_bucket_path" ]]; then
                 log_msg "DEBUG" "Local and cloud S3 destinations are identical; skipping duplicate upload for $db."
             else
-                if ! aws --no-verify-ssl --only-show-errors --endpoint-url="$local_s3_url" \
+                local s3_error
+                s3_error=$(aws --no-verify-ssl --endpoint-url="$local_s3_url" \
                     s3 cp "$dump_file" "s3://$local_s3_bucket$local_s3_bucket_path/$cyear/$cmonth/$final_dump_name" \
-                    --profile local --tries 3; then
-                    log_msg "ERROR" "Local S3 upload failed for database: $db."
+                    --profile local --tries 3 2>&1 || true)
+                if [[ $? -ne 0 ]]; then
+                    log_msg "ERROR" "Local S3 upload failed for database: $db. Error: $s3_error"
                     overall_backup_status=1
                 else
                     log_msg "INFO" "Local upload completed for $db: $local_s3_bucket$local_s3_bucket_path/$cyear/$cmonth/$final_dump_name"
@@ -460,6 +444,95 @@ backup_dbs() {
 
     log_msg "DEBUG" "Backup process completed."
     return "$overall_backup_status"
+}
+
+# Main function (including the fix for the syntax error)
+main() {
+    # Validate environment variables
+    validate_env_vars || {
+        log_msg "FATAL" "Environment variable validation failed. Exiting."
+        exit 1
+    }
+
+    # Create and verify log directory
+    mkdir -p "$LOG_DIR_PATH" || {
+        log_msg "FATAL" "Failed to create log directory: $LOG_DIR_PATH"
+        exit 1
+    }
+    chmod 700 "$LOG_DIR_PATH" || {
+        log_msg "FATAL" "Failed to set permissions on log directory: $LOG_DIR_PATH"
+        exit 1
+    }
+    if [[ ! -w "$LOG_DIR_PATH" ]]; then
+        log_msg "FATAL" "Log directory is not writable: $LOG_DIR_PATH"
+        exit 1
+    fi  # Fixed from }
+
+    local year month pod_name node_name
+    year=$(date +%Y)
+    month=$(date +%m)
+    pod_name="${POD_NAME:-$(hostname)}"
+    node_name="${NODE_NAME:-unknown}"
+    log_file="$LOG_DIR_PATH/${year}_${month}_${pod_name}.log"
+
+    # Check log file size and rotate if necessary
+    if [[ -f "$log_file" && $(stat -c %s "$log_file" 2>/dev/null || stat -f %z "$log_file" 2>/dev/null) -gt $((10*1024*1024)) ]]; then
+        mv "$log_file" "${log_file}.$(date +%s)" || log_msg "WARN" "Failed to rotate log file."
+    fi
+
+    log_msg "INFO" "Script started. Log file: $log_file"
+
+    local overall_script_status=0
+
+    log_msg "DEBUG" "Calling get_vault_items_n_set_s3_profiles..."
+    get_vault_items_n_set_s3_profiles
+    local status=$?
+    log_msg "DEBUG" "get_vault_items_n_set_s3_profiles completed with status: $status"
+    if [[ "$status" -ne 0 ]]; then
+        log_msg "ERROR" "Vault/S3 configuration failed."
+        overall_script_status=1
+    fi
+
+    if [[ "$overall_script_status" -eq 0 ]]; then
+        log_msg "DEBUG" "Calling list_all_dbs..."
+        list_all_dbs
+        status=$?
+        log_msg "DEBUG" "list_all_dbs completed with status: $status"
+        if [[ "$status" -ne 0 ]]; then
+            log_msg "ERROR" "Listing databases failed."
+            overall_script_status=1
+        fi
+    else
+        log_msg "WARN" "Skipping list_all_dbs due to previous failure."
+    fi
+
+    if [[ "$overall_script_status" -eq 0 || "${#TARGET_DATABASE_NAMES[@]}" -gt 0 ]]; then
+        log_msg "DEBUG" "Calling backup_dbs..."
+        backup_dbs
+        status=$?
+        log_msg "DEBUG" "backup_dbs completed with status: $status"
+        if [[ "$status" -ne 0 ]]; then
+            log_msg "WARN" "One or more database backups failed."
+            overall_script_status=1
+        fi
+    else
+        log_msg "WARN" "Skipping backup_dbs as no databases were found or specified."
+    fi
+
+    log_msg "INFO" "Script finished main tasks."
+
+    # Handle sleep with validation
+    if [[ -n "${SCRIPT_POST_RUN_SLEEP_SECONDS:-}" && "${SCRIPT_POST_RUN_SLEEP_SECONDS}" =~ ^[0-9]+$ ]]; then
+        if [[ "${SCRIPT_POST_RUN_SLEEP_SECONDS}" -gt 300 ]]; then
+            log_msg "WARN" "SCRIPT_POST_RUN_SLEEP_SECONDS is set to ${SCRIPT_POST_RUN_SLEEP_SECONDS}s, which is unusually long."
+        fi
+        log_msg "INFO" "Sleeping for ${SCRIPT_POST_RUN_SLEEP_SECONDS} seconds to allow log processing."
+        sleep "$SCRIPT_POST_RUN_SLEEP_SECONDS" || log_msg "WARN" "Sleep command interrupted or failed."
+        log_msg "INFO" "Sleep completed."
+    fi
+
+    log_msg "INFO" "Script exiting with overall status: $overall_script_status"
+    return "$overall_script_status"
 }
 
 # Main function
