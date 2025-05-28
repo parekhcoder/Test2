@@ -463,7 +463,7 @@ main() {
     if [[ ! -w "$LOG_DIR_PATH" ]]; then
         log_msg "FATAL" "Log directory is not writable: $LOG_DIR_PATH"
         exit 1
-    }
+    fi
 
     local year month pod_name node_name
     year=$(date +%Y)
