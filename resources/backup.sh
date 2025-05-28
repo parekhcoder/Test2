@@ -77,13 +77,14 @@ validate_env_vars() {
 
     local missing_vars=()
     for var in "${required_vars[@]}"; do
-        if [[ -z "${!var}" ]]; then
+        # Use eval to safely check if the variable is unset or empty
+        if ! eval "[ -n \"\${$var+x}\" ]" || [ -z "$(eval echo "\${$var}")" ]; then
             missing_vars+=("$var")
         fi
     done
 
     if [[ ${#missing_vars[@]} -gt 0 ]]; then
-        log_msg "ERROR" "Missing required environment variables: ${missing_vars[*]}"
+        log_msg "ERROR" "Missing or empty required environment variables: ${missing_vars[*]}"
         return 1
     fi
     return 0
