@@ -50,8 +50,8 @@ RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cl
     gcloud --version
 
 # Copy backup script and execute
-COPY resources/backup.sh /
+COPY resources/backup.sh /app/backup.sh
 # COPY resources/logging.sh /
-RUN chmod +x /backup.sh
+RUN chmod +x /app/backup.sh
 # RUN chmod +x /logging.sh
-CMD ["bash", "/backup.sh"]
+CMD ["/app/backup.sh"]
