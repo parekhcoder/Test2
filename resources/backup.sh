@@ -434,7 +434,7 @@ backup_dbs() {
                 log_msg "ERROR" "Cloud S3 upload failed for database: $db. Error: $s3_error"
                 overall_backup_status=1
             else
-                log_msg "INFO" "Cloud upload completed for $db: $cloud_s3_bucket$cloud_s3_bucket_path/$cyear/$cmonth/$final_dump_name"
+                log_msg "INFO" "Cloud upload completed for $db: $cloud_s3_bucket$cloud_s3_bucket_path/$cyear/$cmonth/$final_dump_name Output: $s3_error"
             fi
         fi        
 
@@ -452,7 +452,7 @@ backup_dbs() {
                     log_msg "ERROR" "Local S3 upload failed for database: $db. Error: $s3_error"
                     overall_backup_status=1
                 else
-                    log_msg "INFO" "Local upload completed for $db: $local_s3_bucket$local_s3_bucket_path/$cyear/$cmonth/$final_dump_name"
+                    log_msg "INFO" "Local upload completed for $db: $local_s3_bucket$local_s3_bucket_path/$cyear/$cmonth/$final_dump_name Output: $s3_error"
                 fi
             fi
         fi
