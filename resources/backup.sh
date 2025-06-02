@@ -429,8 +429,9 @@ backup_dbs() {
             local s3_error
             s3_error=$(aws --no-verify-ssl --endpoint-url="$cloud_s3_url" \
                 s3 cp "$dump_file" "s3://$cloud_s3_bucket$cloud_s3_bucket_path/$cyear/$cmonth/$final_dump_name" \
-                --profile cloud --tries 3 2>&1 || true)
-            if [[ $? -ne 0 ]]; then
+                --profile cloud --tries 3 2>&1)
+            aws_exit_status=$?
+            if [[ $aws_exit_status -ne 0 ]]; then
                 log_msg "ERROR" "Cloud S3 upload failed for database: $db. Error: $s3_error"
                 overall_backup_status=1
             else
@@ -447,8 +448,9 @@ backup_dbs() {
                 local s3_error
                 s3_error=$(aws --no-verify-ssl --endpoint-url="$local_s3_url" \
                     s3 cp "$dump_file" "s3://$local_s3_bucket$local_s3_bucket_path/$cyear/$cmonth/$final_dump_name" \
-                    --profile local --tries 3 2>&1 || true)
-                if [[ $? -ne 0 ]]; then
+                    --profile local --tries 3 2>&1)
+                aws_exit_status=$?
+                if [[ $aws_exit_status -ne 0 ]]; then
                     log_msg "ERROR" "Local S3 upload failed for database: $db. Error: $s3_error"
                     overall_backup_status=1
                 else
