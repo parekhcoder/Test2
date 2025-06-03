@@ -90,7 +90,6 @@ validate_env_vars() {
     return 0
 }
 
-# Configure S3 profile (refactored to reduce duplication)
 configure_s3_profile() {
     local profile="$1" uuid="$2" vault_uuid="$3"
     local item http_code access_key secret_key url bucket bucket_path
@@ -128,8 +127,7 @@ configure_s3_profile() {
         log_msg "ERROR" "Failed to configure $profile aws secret access key."
         return 1
     }
-
-    # Return values via global variables (avoiding eval)
+    
     case "$profile" in
         cloud)
             cloud_s3_url="$url"
@@ -147,7 +145,6 @@ configure_s3_profile() {
     return 0
 }
 
-# Get secrets from vault and set S3 profiles
 get_vault_items_n_set_s3_profiles() {
     log_msg "DEBUG" "Starting get_vault_items_n_set_s3_profiles function."
     local vaults http_code vault_uuid vault_items cloud_s3_uuid local_s3_uuid mysql_uuid age_public_key_uuid
@@ -264,7 +261,7 @@ get_vault_items_n_set_s3_profiles() {
     fi
     log_msg "DEBUG" "MySQL details retrieved."
 
-    # Create MySQL config file for secure credential passing
+    # Create MySQL config file for secure credential
     mysql_cnf="$tmp_dir/mysql.cnf"
     cat > "$mysql_cnf" << EOF
 [client]
@@ -288,7 +285,6 @@ EOF
     return 0
 }
 
-# List all databases
 list_all_dbs() {
     log_msg "DEBUG" "Starting list_all_dbs function."
     local db_list
@@ -334,21 +330,20 @@ backup_dbs() {
 
     local create_db_stmt=""
     [[ "${BACKUP_CREATE_DATABASE_STATEMENT:-false}" == "true" ]] && create_db_stmt="--databases"
-
-    # Split and validate BACKUP_ADDITIONAL_PARAMS
+    
     local additional_params=()
     if [[ -n "${BACKUP_ADDITIONAL_PARAMS:-}" ]]; then
         # Remove leading/trailing whitespace
         BACKUP_ADDITIONAL_PARAMS=$(echo "${BACKUP_ADDITIONAL_PARAMS}" | tr -s ' ' | sed 's/^ *//;s/ *$//')
         # Split into array
         IFS=' ' read -ra additional_params <<< "${BACKUP_ADDITIONAL_PARAMS}"
-        # Validate each parameter
+        
         for param in "${additional_params[@]}"; do
             if [[ ! "$param" =~ ^--[a-zA-Z0-9_-]+(=.*)?$ ]]; then
                 log_msg "ERROR" "Invalid mysqldump parameter: '$param'. Must start with '--'."
                 return 1
             fi
-            # Warn about redundant options
+            
             if [[ "$param" == "--quick" || "$param" == "--skip-lock-tables" ]]; then
                 log_msg "WARN" "Redundant option '$param' in BACKUP_ADDITIONAL_PARAMS; already handled by script."
             fi
@@ -363,7 +358,7 @@ backup_dbs() {
         local tmp_err_file="$tmp_dir/${db}_err.log"
 
         log_msg "DEBUG" "Running mysqldump for $db with params: --defaults-file=$mysql_cnf --single-transaction --quick ${additional_params[*]} $create_db_stmt $db"
-        # Use array expansion for additional_params
+        
         if ! mysqldump --defaults-file="$mysql_cnf" --single-transaction --quick \
             "${additional_params[@]}" "$create_db_stmt" "$db" > "$dump" 2> >(tee "$tmp_err_file" >&2); then
             log_msg "ERROR" "mysqldump failed for database: $db. Error: $(cat "$tmp_err_file" | head -n 1)"
@@ -466,15 +461,13 @@ backup_dbs() {
     return "$overall_backup_status"
 }
 
-# Main function (including the fix for the syntax error)
 main() {
-    # Validate environment variables
+
     validate_env_vars || {
         log_msg "FATAL" "Environment variable validation failed. Exiting."
         exit 1
     }
 
-    # Create and verify log directory
     mkdir -p "$LOG_DIR_PATH" || {
         log_msg "FATAL" "Failed to create log directory: $LOG_DIR_PATH"
         exit 1
@@ -486,21 +479,22 @@ main() {
     if [[ ! -w "$LOG_DIR_PATH" ]]; then
         log_msg "FATAL" "Log directory is not writable: $LOG_DIR_PATH"
         exit 1
-    fi  # Fixed from }
+    fi
 
     local year month pod_name node_name
     year=$(date +%Y)
     month=$(date +%m)
     pod_name="${POD_NAME:-$(hostname)}"
     node_name="${NODE_NAME:-unknown}"
-    log_file="$LOG_DIR_PATH/${year}_${month}_${pod_name}.log"
-
-    # Check log file size and rotate if necessary
-    if [[ -f "$log_file" && $(stat -c %s "$log_file" 2>/dev/null || stat -f %z "$log_file" 2>/dev/null) -gt $((10*1024*1024)) ]]; then
-        mv "$log_file" "${log_file}.$(date +%s)" || log_msg "WARN" "Failed to rotate log file."
-    fi
+    log_file="$LOG_DIR_PATH/${year}_${month}_${pod_name}.log"    
 
     log_msg "INFO" "Script started. Log file: $log_file"
+
+    
+    if [ "$(date +%d)" = "01" ]; then
+        log_msg "DEBUG" "Deleting old log files"    
+        find "$LOG_DIR_PATH" -type f -name "*.log" -mtime +60 -exec rm -f {} \; || log_msg "Error" "Error while deleting old log files"
+    fi
 
     local overall_script_status=0
 
@@ -540,97 +534,7 @@ main() {
     fi
 
     log_msg "INFO" "Script finished main tasks."
-
-    # Handle sleep with validation
-    if [[ -n "${SCRIPT_POST_RUN_SLEEP_SECONDS:-}" && "${SCRIPT_POST_RUN_SLEEP_SECONDS}" =~ ^[0-9]+$ ]]; then
-        if [[ "${SCRIPT_POST_RUN_SLEEP_SECONDS}" -gt 300 ]]; then
-            log_msg "WARN" "SCRIPT_POST_RUN_SLEEP_SECONDS is set to ${SCRIPT_POST_RUN_SLEEP_SECONDS}s, which is unusually long."
-        fi
-        log_msg "INFO" "Sleeping for ${SCRIPT_POST_RUN_SLEEP_SECONDS} seconds to allow log processing."
-        sleep "$SCRIPT_POST_RUN_SLEEP_SECONDS" || log_msg "WARN" "Sleep command interrupted or failed."
-        log_msg "INFO" "Sleep completed."
-    fi
-
-    log_msg "INFO" "Script exiting with overall status: $overall_script_status"
-    return "$overall_script_status"
-}
-
-# Main function
-main() {
-    # Validate environment variables
-    validate_env_vars || {
-        log_msg "FATAL" "Environment variable validation failed. Exiting."
-        exit 1
-    }
-
-    # Create and verify log directory
-    mkdir -p "$LOG_DIR_PATH" || {
-        log_msg "FATAL" "Failed to create log directory: $LOG_DIR_PATH"
-        exit 1
-    }
-    chmod 700 "$LOG_DIR_PATH" || {
-        log_msg "FATAL" "Failed to set permissions on log directory: $LOG_DIR_PATH"
-        exit 1
-    }
-    if [[ ! -w "$LOG_DIR_PATH" ]]; then
-        log_msg "FATAL" "Log directory is not writable: $LOG_DIR_PATH"
-        exit 1
-    fi
-
-    local year month pod_name node_name
-    year=$(date +%Y)
-    month=$(date +%m)
-    pod_name="${POD_NAME:-$(hostname)}"
-    node_name="${NODE_NAME:-unknown}"
-    log_file="$LOG_DIR_PATH/${year}_${month}_${pod_name}.log"
-
-    # Check log file size and rotate if necessary
-    if [[ -f "$log_file" && $(stat -c %s "$log_file" 2>/dev/null || stat -f %z "$log_file" 2>/dev/null) -gt $((10*1024*1024)) ]]; then
-        mv "$log_file" "${log_file}.$(date +%s)" || log_msg "WARN" "Failed to rotate log file."
-    fi
-
-    log_msg "INFO" "Script started. Log file: $log_file"
-
-    local overall_script_status=0
-
-    log_msg "DEBUG" "Calling get_vault_items_n_set_s3_profiles..."
-    get_vault_items_n_set_s3_profiles
-    local status=$?
-    log_msg "DEBUG" "get_vault_items_n_set_s3_profiles completed with status: $status"
-    if [[ "$status" -ne 0 ]]; then
-        log_msg "ERROR" "Vault/S3 configuration failed."
-        overall_script_status=1
-    fi
-
-    if [[ "$overall_script_status" -eq 0 ]]; then
-        log_msg "DEBUG" "Calling list_all_dbs..."
-        list_all_dbs
-        status=$?
-        log_msg "DEBUG" "list_all_dbs completed with status: $status"
-        if [[ "$status" -ne 0 ]]; then
-            log_msg "ERROR" "Listing databases failed."
-            overall_script_status=1
-        fi
-    else
-        log_msg "WARN" "Skipping list_all_dbs due to previous failure."
-    fi
-
-    if [[ "$overall_script_status" -eq 0 || "${#TARGET_DATABASE_NAMES[@]}" -gt 0 ]]; then
-        log_msg "DEBUG" "Calling backup_dbs..."
-        backup_dbs
-        status=$?
-        log_msg "DEBUG" "backup_dbs completed with status: $status"
-        if [[ "$status" -ne 0 ]]; then
-            log_msg "WARN" "One or more database backups failed."
-            overall_script_status=1
-        fi
-    else
-        log_msg "WARN" "Skipping backup_dbs as no databases were found or specified."
-    fi
-
-    log_msg "INFO" "Script finished main tasks."
-
-    # Handle sleep with validation
+    
     if [[ -n "${SCRIPT_POST_RUN_SLEEP_SECONDS:-}" && "${SCRIPT_POST_RUN_SLEEP_SECONDS}" =~ ^[0-9]+$ ]]; then
         if [[ "${SCRIPT_POST_RUN_SLEEP_SECONDS}" -gt 300 ]]; then
             log_msg "WARN" "SCRIPT_POST_RUN_SLEEP_SECONDS is set to ${SCRIPT_POST_RUN_SLEEP_SECONDS}s, which is unusually long."
