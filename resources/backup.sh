@@ -422,7 +422,7 @@ backup_dbs() {
        if [[ "${CLOUD_UPLOAD:-false}" == "true" ]]; then
             log_msg "DEBUG" "Uploading $db backup to cloud S3..."
             local s3_error
-            s3_error=$(aws --no-verify-ssl --endpoint-url="$cloud_s3_url" \
+            s3_error=$(aws --endpoint-url="$cloud_s3_url" \
                 s3 cp "$dump_file" "s3://$cloud_s3_bucket$cloud_s3_bucket_path/$cyear/$cmonth/$final_dump_name" \
                 --profile cloud 2>&1)
             aws_exit_status=$?
@@ -441,7 +441,7 @@ backup_dbs() {
                 log_msg "DEBUG" "Local and cloud S3 destinations are identical; skipping duplicate upload for $db."
             else
                 local s3_error
-                s3_error=$(aws --no-verify-ssl --endpoint-url="$local_s3_url" \
+                s3_error=$(aws --endpoint-url="$local_s3_url" \
                     s3 cp "$dump_file" "s3://$local_s3_bucket$local_s3_bucket_path/$cyear/$cmonth/$final_dump_name" \
                     --profile local 2>&1)
                 aws_exit_status=$?
