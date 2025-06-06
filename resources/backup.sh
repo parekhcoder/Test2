@@ -17,7 +17,7 @@ LOG_DIR_PATH="${LOG_DIR:-/app/log}"
 # Logging function with standardized levels and sync
 log_msg() {
     local timestamp level message json_log app_name node_name pod_name
-    timestamp=$(date '+%Y-%m-%dT%H:%M:%S.%NZ')
+    timestamp=$(date -u '+%Y-%m-%dT%H:%M:%S.%NZ')
     level="$1"
     message="$2"
     app_name="${APP_NAME:-unknown}"
