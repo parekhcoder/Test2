@@ -16,35 +16,40 @@ LOG_DIR_PATH="${LOG_DIR:-/app/log}"
 
 # Logging function with standardized levels and sync
 log_msg() {
-    local timestamp level message json_log app_name node_name pod_name
-    timestamp=$(date -u '+%Y-%m-%dT%H:%M:%S.%NZ')
+    local timestamp level message json_log app_name node_name pod_name tenant
+    
     level="$1"
     message="$2"
+    
+    timestamp=$(date -u '+%Y-%m-%dT%H:%M:%S.%NZ')
+    
     app_name="${APP_NAME:-unknown}"
     node_name="${NODE_NAME:-unknown}"
     pod_name="${POD_NAME:-unknown}"
     tenant="${TENANT:-unknown}"
-
-    json_log=$(jq -n \
+    
+    if ! json_log=$(jq -n -c \
         --arg t "$timestamp" \
         --arg a "$app_name" \
         --arg l "$level" \
         --arg m "$message" \
         --arg n "$node_name" \
         --arg p "$pod_name" \
-        --arg t "$tenant" \
-        '{"@timestamp": $t, "appname": $a, "level": $l, "message": $m, "nodename": $n, "podname": $p, "tenant": $t}')
-
-    exec 3>&1 # Save stdout to fd 3
-
-    if [[ -z "${log_file:-}" || ! -w "$LOG_DIR_PATH" ]]; then
-        echo "$json_log" >&3
-    else
-        echo "$json_log" | tee -a "$log_file" >&3
-        sync "$log_file" 2>/dev/null || echo "WARN: Failed to sync log file: $log_file" >&3
+        --arg T "$tenant" \
+        '{"@timestamp": $t, "appname": $a, "level": $l, "message": $m, "nodename": $n, "podname": $p, "tenant": $T}'
+    ); then
+        
+        echo "ERROR: Failed to generate JSON log. Level: \"$level\", Message: \"$message\"" >&2        
     fi
-
-    exec 3>&- # Close fd 3
+    
+    if [[ -z "${log_file:-}" || ! -w "$LOG_DIR_PATH" ]]; then      
+        echo "$json_log"
+    else
+        
+        echo "$json_log" | tee -a "$log_file"
+        
+        sync "$log_file" 2>/dev/null || echo "WARN: Failed to sync log file: $log_file" >&2
+    fi    
 }
 
 # Trap for cleanup with logging
