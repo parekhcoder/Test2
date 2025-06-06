@@ -440,7 +440,17 @@ backup_dbs() {
                 "$cloud_s3_bucket" == "$local_s3_bucket" && "$cloud_s3_bucket_path" == "$local_s3_bucket_path" ]]; then
                 log_msg "DEBUG" "Local and cloud S3 destinations are identical; skipping duplicate upload for $db."
             else
-                local s3_error
+                local s3_error aws_exit_status original_sig_version
+               
+                original_sig_version=$(aws configure get s3.signature_version --profile local || echo "s4")
+               
+                if [[ "${LOCAL_S3_SIGNATURE_VERSION:-s4}" == "s3" ]]; then
+                    aws configure set s3.signature_version s3 --profile local
+                    log_msg "DEBUG" "Set Signature Version 2 for local S3 upload (endpoint: $local_s3_url)"
+                else
+                    log_msg "DEBUG" "Using Signature Version 4 for local S3 upload (endpoint: $local_s3_url)"
+                fi
+                
                 s3_error=$(aws --endpoint-url="$local_s3_url" \
                     s3 cp "$dump_file" "s3://$local_s3_bucket$local_s3_bucket_path/$cyear/$cmonth/$final_dump_name" \
                     --profile local 2>&1)
