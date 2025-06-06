@@ -17,12 +17,13 @@ LOG_DIR_PATH="${LOG_DIR:-/app/log}"
 # Logging function with standardized levels and sync
 log_msg() {
     local timestamp level message json_log app_name node_name pod_name
-    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    timestamp=$(date '+%Y-%m-%dT%H:%M:%SZ')
     level="$1"
     message="$2"
     app_name="${APP_NAME:-unknown}"
     node_name="${NODE_NAME:-unknown}"
     pod_name="${POD_NAME:-unknown}"
+    tenant="${TENANT:-unknown}"
 
     json_log=$(jq -n \
         --arg t "$timestamp" \
@@ -31,7 +32,8 @@ log_msg() {
         --arg m "$message" \
         --arg n "$node_name" \
         --arg p "$pod_name" \
-        '{"@timestamp": $t, "appname": $a, "level": $l, "message": $m, "nodename": $n, "podname": $p}')
+        --arg t "$tenant" \
+        '{"@timestamp": $t, "appname": $a, "level": $l, "message": $m, "nodename": $n, "podname": $p, "tenant": $t}')
 
     exec 3>&1 # Save stdout to fd 3
 
