@@ -36,7 +36,7 @@ log_msg() {
         --arg n "$node_name" \
         --arg p "$pod_name" \
         --arg T "$tenant" \
-        '{"@timestamp": $t, "appname": $a, "level": $l, "message": $m, "nodename": $n, "podname": $p, "tenant": $T}'
+        '{"timestamp": $t, "appname": $a, "level": $l, "message": $m, "nodename": $n, "podname": $p, "tenant": $T}'
     ); then
         
         echo "ERROR: Failed to generate JSON log. Level: \"$level\", Message: \"$message\"" >&2        
