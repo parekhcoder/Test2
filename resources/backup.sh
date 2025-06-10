@@ -21,12 +21,7 @@ log_msg() {
     level="$1"
     message="$2"
     
-    timestamp=$(date -u '+%Y-%m-%dT%H:%M:%S.%NZ')
-    
-    app_name="${APP_NAME:-unknown}"
-    node_name="${NODE_NAME:-unknown}"
-    pod_name="${POD_NAME:-unknown}"
-    tenant="${TENANT:-unknown}"
+    timestamp=$(date -u '+%Y-%m-%dT%H:%M:%S.%NZ')   
     
     if ! json_log=$(jq -n -c \
         --arg t "$timestamp" \
@@ -503,7 +498,9 @@ main() {
     month=$(date +%m)
     pod_name="${POD_NAME:-$(hostname)}"
     node_name="${NODE_NAME:-unknown}"
-    log_file="$LOG_DIR_PATH/${year}_${month}_${pod_name}.log"    
+    app_name="${APP_NAME:-unknown}"    
+    tenant="${TENANT:-unknown}"
+    log_file="$LOG_DIR_PATH/${year}_${month}_${tenant}_${app_name}.log"    
 
     log_msg "INFO" "Script started. Log file: $log_file"
 
