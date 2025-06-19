@@ -51,6 +51,7 @@ RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cl
     gcloud config set metrics/environment github_docker_image && \
     gcloud --version
 
+RUN rm -rf /var/lib/apt/lists/*
 # Copy backup script and execute
 COPY resources/backup.sh /app/backup.sh
 # COPY resources/logging.sh /
@@ -59,8 +60,9 @@ RUN chmod +x /app/backup.sh
 COPY resources/setup_cron.sh /app/setup_cron.sh
 RUN chmod +x /app/setup_cron.sh
 
-RUN touch /var/log/cron.log && \
-    touch /var/log/syslog
+RUN touch /var/log/cron.log /var/log/syslog && \
+    chmod 644 /var/log/cron.log /var/log/syslog && \
+    chown root:root /var/log/cron.log /var/log/syslog
 
 # RUN chmod +x /logging.sh
 #CMD ["/app/backup.sh"]
