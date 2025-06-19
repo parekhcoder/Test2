@@ -17,6 +17,7 @@ RUN apt-get update \
     gzip \      
     gcc make \
     golang \
+    cron \
     git && \
     pip3 install --upgrade awscli s3cmd python-magic && \
     export PATH="/usr/lib/go/bin:$PATH"
@@ -53,5 +54,12 @@ RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cl
 COPY resources/backup.sh /app/backup.sh
 # COPY resources/logging.sh /
 RUN chmod +x /app/backup.sh
+
+COPY resources/setup_cron.sh /app/setup_cron.sh
+RUN chmod +x /app/setup_cron.sh
+
+RUN touch /app/log/cron.log
+
 # RUN chmod +x /logging.sh
-CMD ["/app/backup.sh"]
+#CMD ["/app/backup.sh"]
+CMD ["/app/setup_cron.sh"]
