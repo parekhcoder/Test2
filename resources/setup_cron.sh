@@ -12,5 +12,17 @@ crontab -r 2>/dev/null || true
 
 echo "Crontab setup complete. Starting cron daemon."
 
+echo "Attempting to start rsyslogd..."
+rsyslogd -n & 
+RSYSLOG_PID=$!
+echo "rsyslogd started with PID: $RSYSLOG_PID"
+
+sleep 2
+
 # Start cron in the foreground
+echo "Starting cron daemon in foreground..."
 exec cron -f
+
+echo "Error: Failed to start cron."
+kill $RSYSLOG_PID 
+exit 1
