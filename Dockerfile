@@ -17,6 +17,7 @@ RUN apt-get update \
     gzip \      
     gcc make \
     golang \
+    rsyslog \
     cron \
     git && \
     pip3 install --upgrade awscli s3cmd python-magic && \
@@ -58,7 +59,8 @@ RUN chmod +x /app/backup.sh
 COPY resources/setup_cron.sh /app/setup_cron.sh
 RUN chmod +x /app/setup_cron.sh
 
-RUN touch /var/log/cron.log
+RUN touch /var/log/cron.log && \
+    touch /var/log/syslog
 
 # RUN chmod +x /logging.sh
 #CMD ["/app/backup.sh"]
