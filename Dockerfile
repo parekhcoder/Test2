@@ -58,7 +58,7 @@ RUN chmod +x /app/backup.sh
 COPY resources/setup_cron.sh /app/setup_cron.sh
 RUN chmod +x /app/setup_cron.sh
 
-RUN touch /app/log/cron.log
+RUN touch /var/log/cron.log
 
 # RUN chmod +x /logging.sh
 #CMD ["/app/backup.sh"]
