@@ -1,8 +1,6 @@
 # Set the base image
 FROM ubuntu:24.04
 
-ENV DEBIAN_FRONTEND=noninteractive
-
 RUN apt-get update \
     && apt-get install -y curl jq \
     python3 \
@@ -21,7 +19,7 @@ RUN apt-get update \
     golang \
 #    rsyslog \
     cron \
-    tzdata \
+#   tzdata \
     git && \
     pip3 install --upgrade awscli s3cmd python-magic && \
     export PATH="/usr/lib/go/bin:$PATH"
