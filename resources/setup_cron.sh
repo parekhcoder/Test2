@@ -11,7 +11,7 @@ crontab -r 2>/dev/null || true
 #(crontab -l 2>/dev/null; echo "${CRON_SCHEDULE} /app/backup.sh > /dev/null 2>&1") | crontab -
 (crontab -l 2>/dev/null; echo "${CRON_SCHEDULE} /app/backup.sh >> /var/log/cron.log 2>&1") | crontab -
 
-
+crontab -l
 echo "Crontab setup complete. Starting cron daemon."
 
 #echo "Attempting to start rsyslogd..."
@@ -23,7 +23,7 @@ echo "Crontab setup complete. Starting cron daemon."
 
 # Start cron in the foreground
 #echo "Starting cron daemon in foreground..."
-exec cron -f -d SCH,PROC,EXT
+exec cron -f 
 
 #echo "Error: Failed to start cron."
 #kill $RSYSLOG_PID 
