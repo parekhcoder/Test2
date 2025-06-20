@@ -1,26 +1,45 @@
 # Set the base image
 FROM ubuntu:24.04
 
-RUN apt-get update \
-    && apt-get install -y curl jq \
-    python3 \
-    python3-pip \
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set a persistent PATH for Go binaries
+# This ensures /usr/lib/go/bin is in the PATH for all subsequent RUN commands
+# and for the final running container processes (CMD/ENTRYPOINT).
+ENV PATH="/usr/lib/go/bin:${PATH}"
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Ensure /var/log/cron.log exists and is writable (best practice for cron)
+RUN touch /var/log/cron.log && chmod 644 /var/log/cron.log
+
+# Install all packages in a single RUN command for efficiency and smaller layers
+RUN apt-get update && \
+    apt-get install -y \
+    curl \
+    jq \
     groff \
     less \
     mailcap \
-    mysql-client \
-    curl \    
-    python3-crcmod \    
-    libc6 \
+    gzip \
     gnupg \
     coreutils \
-    gzip \      
-    gcc make \
+    git \
+    python3 \
+    python3-pip \
+    mysql-client \
+    python3-crcmod \
+    gcc \
+    make \
     golang \
     cron \
-    git && \
-    pip3 install --upgrade awscli s3cmd python-magic && \
-    export PATH="/usr/lib/go/bin:$PATH"
+    libc6 && \
+    # Clean up apt cache to reduce image size
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    # Install Python packages using pip3
+    pip3 install --no-cache-dir --upgrade awscli s3cmd python-magic
 
     # Set Default Environment Variables
 ENV BACKUP_CREATE_DATABASE_STATEMENT=false
@@ -58,12 +77,6 @@ RUN chmod +x /app/backup.sh
 
 COPY resources/setup_cron.sh /app/setup_cron.sh
 RUN chmod +x /app/setup_cron.sh
-
-RUN touch /var/log/cron.log \
-    #touch /var/log/syslog && \
-    chmod 644 /var/log/cron.log 
-    #chmod 644 /var/log/syslog && \
-    #chown root:root /var/log/cron.log /var/log/syslog
 
 # RUN chmod +x /logging.sh
 #CMD ["/app/backup.sh"]
