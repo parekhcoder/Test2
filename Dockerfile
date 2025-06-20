@@ -17,9 +17,7 @@ RUN apt-get update \
     gzip \      
     gcc make \
     golang \
-#    rsyslog \
     cron \
-#   tzdata \
     git && \
     pip3 install --upgrade awscli s3cmd python-magic && \
     export PATH="/usr/lib/go/bin:$PATH"
@@ -33,9 +31,6 @@ ENV CLOUD_SDK_VERSION=367.0.0
 # Release commit for https://github.com/FiloSottile/age/tree/v1.0.0
 ENV AGE_VERSION=552aa0a07de0b42c16126d3107bd8895184a69e7
 ENV BACKUP_PROVIDER=aws
-
-#ENV TZ=UTC
-#RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Install FiloSottile/age (https://github.com/FiloSottile/age)
 RUN git clone https://filippo.io/age && \
