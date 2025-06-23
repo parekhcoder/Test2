@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Set a persistent PATH for Go binaries
 # This ensures /usr/lib/go/bin is in the PATH for all subsequent RUN commands
 # and for the final running container processes (CMD/ENTRYPOINT).
-ENV PATH="/usr/lib/go/bin:${PATH}"
+ENV PATH="/usr/lib/go/bin:/usr/local/bin:${PATH}"
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -49,6 +49,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     # Install Python packages using pip3
     pip3 install --break-system-packages --no-cache-dir --upgrade awscli s3cmd python-magic
+
+RUN python3 -m site --user-base
 
     # Set Default Environment Variables
 ENV BACKUP_CREATE_DATABASE_STATEMENT=false
