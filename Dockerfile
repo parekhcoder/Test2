@@ -35,7 +35,15 @@ RUN apt-get update && \
     golang \
     cron \
     libc6 && \
-    # Clean up apt cache to reduce image size
+    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - && \
+    apt-get update && \
+    apt-get install -y google-cloud-sdk && \ # Install gcloud via apt   
+    gcloud config set core/disable_usage_reporting true && \
+    gcloud config set component_manager/disable_update_check true && \
+    gcloud config set metrics/environment github_docker_image && \
+    gcloud --version && \
+    # Clean up apt and pip caches
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     # Install Python packages using pip3
@@ -61,16 +69,16 @@ RUN git clone https://filippo.io/age && \
 ENV PATH /google-cloud-sdk/bin:$PATH
 
 # Install Google Cloud SDK
-RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \
-    tar xzf google-cloud-sdk-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \
-    rm google-cloud-sdk-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \
-    export PATH="${PWD}/google-cloud-sdk/bin:${PATH}" && \
-    gcloud config set core/disable_usage_reporting true && \
-    gcloud config set component_manager/disable_update_check true && \
-    gcloud config set metrics/environment github_docker_image && \
-    gcloud --version
+#RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \
+#    tar xzf google-cloud-sdk-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \
+#    rm google-cloud-sdk-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \
+#    export PATH="${PWD}/google-cloud-sdk/bin:${PATH}" && \
+#    gcloud config set core/disable_usage_reporting true && \
+#    gcloud config set component_manager/disable_update_check true && \
+#    gcloud config set metrics/environment github_docker_image && \
+#    gcloud --version
 
-ENV PATH="/app/google-cloud-sdk/bin:${PATH}"
+#ENV PATH="/app/google-cloud-sdk/bin:${PATH}"
 
 RUN rm -rf /var/lib/apt/lists/*
 # Copy backup script and execute
