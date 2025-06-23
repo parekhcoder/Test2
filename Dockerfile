@@ -69,7 +69,7 @@ RUN git clone https://filippo.io/age && \
     go build -o . filippo.io/age/cmd/... && cp age /usr/local/bin/
 
 # Set Google Cloud SDK Path
-ENV PATH /google-cloud-sdk/bin:$PATH
+#ENV PATH /google-cloud-sdk/bin:$PATH
 
 # Install Google Cloud SDK
 #RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \
