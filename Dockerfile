@@ -39,7 +39,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     # Install Python packages using pip3
-    pip3 install --no-cache-dir --upgrade awscli s3cmd python-magic
+    pip3 install --break-system-packages --no-cache-dir --upgrade awscli s3cmd python-magic
 
     # Set Default Environment Variables
 ENV BACKUP_CREATE_DATABASE_STATEMENT=false
