@@ -9,7 +9,11 @@ crontab -r 2>/dev/null || true
 
 # Add the cron job
 #(crontab -l 2>/dev/null; echo "${CRON_SCHEDULE} /app/backup.sh > /dev/null 2>&1") | crontab -
-(crontab -l 2>/dev/null; echo "${CRON_SCHEDULE} /app/backup.sh >> /var/log/cron.log 2>&1") | crontab -
+#(crontab -l 2>/dev/null; echo "${CRON_SCHEDULE} /app/backup.sh >> /var/log/cron.log 2>&1") | crontab -
+CRONTAB_CONTENT="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/go/bin:/app/google-cloud-sdk/bin
+${CRON_SCHEDULE} /app/backup.sh >> /var/log/cron.log 2>&1"
+
+echo "${CRONTAB_CONTENT}" | crontab -
 
 crontab -l
 echo "Crontab setup complete. Starting cron daemon."
