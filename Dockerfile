@@ -2,11 +2,7 @@
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-
-# Set a persistent PATH for Go binaries
-# This ensures /usr/lib/go/bin is in the PATH for all subsequent RUN commands
-# and for the final running container processes (CMD/ENTRYPOINT).
-ENV PATH="/usr/lib/go/bin:/usr/local/bin:/root/.local/bin:${PATH}"
+ENV PATH="/usr/local/bin:/usr/lib/go/bin:/root/.local/bin:${PATH}"
 
 # Set the working directory inside the container
 WORKDIR /app
