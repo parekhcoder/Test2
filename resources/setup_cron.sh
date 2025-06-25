@@ -36,7 +36,7 @@ SCRIPT_POST_RUN_SLEEP_SECONDS=\"${SCRIPT_POST_RUN_SLEEP_SECONDS}\"
 AWS_CA_BUNDLE=\"${AWS_CA_BUNDLE}\"
 LOCAL_S3_SIGNATURE_VERSION=\"${LOCAL_S3_SIGNATURE_VERSION}\"
 
-${CRON_SCHEDULE} /app/backup.sh >> /var/log/cron.log 2>&1"
+${CRON_SCHEDULE} /app/backup.sh > /dev/null 2>&1"
 
 echo "${CRONTAB_CONTENT}" | crontab -
 
